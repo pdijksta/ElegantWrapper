@@ -1,24 +1,34 @@
 import os
+import glob
 import h5py
 import numpy as np
+
+from GenesisWrapper.simulation import InputParser
 
 class ElegantSimulation:
     def __init__(self, input_file):
         if not input_file.endswith('.ele'):
             raise ValueError('File is not an .ele')
-        self.basename = input_file[:-4]
+        self.input = InputParser(input_file)
+        self.directory = os.path.abspath(os.path.dirname(input_file))
+
+        self.rootname = self.input['rootname']
         self.filename = input_file
 
-        self.sig = self._get_FileViewer('.sig')
-        self.twiss = self._get_FileViewer('.twi')
-        self.out = self._get_FileViewer('.out')
-        self.cen = self._get_FileViewer('.cen')
+        self.sig = self._get_FileViewer('%s.sig' % self.rootname)
+        self.twiss = self._get_FileViewer('%s.twi' % self.rootname)
+        self.out = self._get_FileViewer('%s.out' % self.rootname)
+        self.cen = self._get_FileViewer('%s.cen' % self.rootname)
 
-    def _get_FileViewer(self, ending):
-        raw_file = self.basename + ending
+        watch_files = glob.glob(self.directory+'/%s*.w1' % self.rootname)
+        self.watch = [self._get_FileViewer(f) for f in watch_files]
+
+    def _get_FileViewer(self, filename):
+        raw_file = os.path.join(self.directory, filename)
         processed_file = raw_file + '.h5'
 
-        if not os.path.isfile(processed_file):
+        if not os.path.isfile(processed_file) or \
+                os.path.getmtime(processed_file) < os.path.getmtime(raw_file):
             os.system('sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file))
             print('Generated %s' % processed_file)
 
