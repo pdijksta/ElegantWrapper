@@ -44,7 +44,7 @@ class Watcher(FileViewer):
         except KeyError:
             pass
 
-    # Look at paper from Guetg et al: PRSTAB 18, 2015 p. 030701
+    # Look at paper from Guetg et al: PRSTAB 18, 2015, p. 030701
     # to understand what mu, zij, mn, mnstar means
 
     @functools.lru_cache()
@@ -52,20 +52,23 @@ class Watcher(FileViewer):
         assert dimension in ('x', 'y', 'xp', 'yp')
 
         trans_0 = self['columns/'+dimension]
-        if dimension[-1] == 'p':
-            trans = trans_0
-        else:
-            trans = trans_0 - np.mean(trans_0)
+
+        # <x> = <x'> = 0
+        trans = trans_0 - np.mean(trans_0)
 
         def fit_func(z, *parameters):
             output = 0
             for order, par in enumerate(parameters):
-                output += par*z**(order+1)
+                zz = z**(order+1)
+                output += par*(zz - np.mean(zz))
             return output
 
         fit, _ = optimize.curve_fit(fit_func, self.zz, trans, [1]*order)
 
-        return fit[-1]
+        #import visualize_fit
+        #visualize_fit.visualize_fit(fit_func, self.zz, trans, fit, title='Mu '+dimension)
+
+        return fit
 
     @functools.lru_cache()
     def get_zij(self, i, j):
@@ -83,8 +86,10 @@ class Watcher(FileViewer):
         g0 = (1 + a0**2)/b0
 
         output = 0
-        mu = {i: self.get_mu(dimension, i) for i in range(1, n+1)}
-        mup = {i: self.get_mu(dimension+'p', i) for i in range(1, n+1)}
+        mu_vect = self.get_mu(dimension, n)
+        mup_vect = self.get_mu(dimension+'p', n)
+        mu = {i: mu_vect[i-1] for i in range(1, n+1)}
+        mup = {i: mup_vect[i-1] for i in range(1, n+1)}
 
         for i,j in itertools.product(range(1,n+1), repeat=2):
             output += (b0*mup[i]*mup[j] + g0*mu[i]*mu[j] + 2*a0*mu[i]*mup[j]) * self.get_zij(i,j)
@@ -98,8 +103,10 @@ class Watcher(FileViewer):
         e0 = sig0['columns/e%s' % dimension][index]
 
         output = 0
-        mu = {i: self.get_mu(dimension, i) for i in range(1, n+1)}
-        mup = {i: self.get_mu(dimension+'p', i) for i in range(1, n+1)}
+        mu_vect = self.get_mu(dimension, n)
+        mup_vect = self.get_mu(dimension+'p', n)
+        mu = {i: mu_vect[i-1] for i in range(1, n+1)}
+        mup = {i: mup_vect[i-1] for i in range(1, n+1)}
 
         for i,j,k,l in itertools.product(range(1,n+1), repeat=4):
             tmp = (mu[i]*mu[j]*mup[k]*mup[l] - mu[i]*mup[j]*mu[k]*mup[l])
@@ -117,7 +124,6 @@ class Watcher(FileViewer):
 
         return e0 * np.sqrt(1+mn+mnstar)
 
-
     def get_beta_tilde(self, dimension, n, twi0, sig0):
         assert dimension in ('x', 'y')
         index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
@@ -125,10 +131,44 @@ class Watcher(FileViewer):
         b0 = twi0['columns/beta%s' % dimension][index]
 
         factor = 0
+        mu = self.get_mu(dimension, n)
         for i,j in itertools.product(range(1,n+1), repeat=2):
-            mu_i = self.get_mu(dimension, i)
-            mu_j = self.get_mu(dimension, j)
-            factor += mu_i*mu_j*self.get_zij(i,j)
+            factor += mu[i-1]*mu[j-1]*self.get_zij(i,j)
 
         return (b0*e0 + factor) / self.get_etilde(dimension, n, twi0, sig0)
+
+    def get_gamma_tilde(self, dimension, n, twi0, sig0):
+        assert dimension in ('x', 'y')
+        index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
+        e0 = sig0['columns/e%s' % dimension][index]
+        g0 = twi0['columns/gamma%s' % dimension][index]
+
+        factor = 0
+        mup = self.get_mu(dimension+'p', n)
+        for i,j in itertools.product(range(1,n+1), repeat=2):
+            factor += mup[i-1]*mup[j-1]*self.get_zij(i,j)
+
+        return (g0*e0 + factor) / self.get_etilde(dimension, n, twi0, sig0)
+
+    def get_alpha_tilde(self, dimension, n, twi0, sig0):
+        assert dimension in ('x', 'y')
+        index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
+        e0 = sig0['columns/e%s' % dimension][index]
+        a0 = twi0['columns/alpha%s' % dimension][index]
+
+        factor = 0
+        mu = self.get_mu(dimension, n)
+        mup = self.get_mu(dimension+'p', n)
+        for i,j in itertools.product(range(1,n+1), repeat=2):
+            factor += mu[i-1]*mup[j-1]*self.get_zij(i,j)
+
+        return (a0*e0 - factor) / self.get_etilde(dimension, n, twi0, sig0)
+
+    def get_emittance_from_beam(self, dimension):
+        assert dimension in ('x', 'y')
+
+        space = self['columns/%s' % dimension]
+        angle = self['columns/%sp' % dimension]
+
+        return np.sqrt(np.mean(space**2)*np.mean(angle**2) - np.mean(space*angle)**2)
 
