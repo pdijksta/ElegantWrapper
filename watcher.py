@@ -13,10 +13,24 @@ class FileViewer:
         self.sim = sim
         self._dict = {}
 
+        with h5py.File(self.filename, 'r') as ff:
+            keys0 = ff['page1'].keys()
+            if 'columns' in keys0:
+                self.columns = list(ff['page1/columns'].keys())
+            else:
+                self.columns = []
+            if 'parameters' in keys0:
+                self.parameters = list(ff['page1/parameters'].keys())
+            else:
+                self.parameters = []
+
     def __getitem__(self, key):
         if key not in self._dict:
             with h5py.File(self.filename, 'r') as ff:
-                self._dict[key] = np.array(ff['page1/'+key])
+                out = np.array(ff['page1/'+key])
+                if out.dtype == 'O':
+                    out = np.array(out, dtype='U')
+                self._dict[key] = out
         return self._dict[key]
 
     def print_tree(self):
@@ -28,6 +42,23 @@ class FileViewer:
 
         with h5py.File(self.filename, 'r') as ff:
             ff.visit(lambda x: name_and_size(x, ff))
+
+    def get_row(self, key, value):
+        print('\t'.join(self.columns))
+
+        indices = np.argwhere(self['columns/'+key] == value)
+        if len(indices) == 0:
+            print('No results for %s in %s' % (key, self.filename))
+            return
+
+        for i_ctr, index in enumerate(indices):
+            output = []
+            for column in self.columns:
+                output.append(str(self['columns/'+column][index].squeeze()))
+            print('\t'.join(output))
+
+
+
 
 
 class Watcher(FileViewer):
@@ -83,9 +114,9 @@ class Watcher(FileViewer):
         e0 = sig0['columns/e%s' % dimension][index]
         b0 = twi0['columns/beta%s' % dimension][index]
         a0 = twi0['columns/alpha%s' % dimension][index]
-        g0 = (1 + a0**2)/b0
+        g0 = (1. + a0**2)/b0
 
-        output = 0
+        output = 0.
         mu_vect = self.get_mu(dimension, n)
         mup_vect = self.get_mu(dimension+'p', n)
         mu = {i: mu_vect[i-1] for i in range(1, n+1)}
@@ -102,14 +133,14 @@ class Watcher(FileViewer):
         index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
         e0 = sig0['columns/e%s' % dimension][index]
 
-        output = 0
+        output = 0.
         mu_vect = self.get_mu(dimension, n)
         mup_vect = self.get_mu(dimension+'p', n)
         mu = {i: mu_vect[i-1] for i in range(1, n+1)}
         mup = {i: mup_vect[i-1] for i in range(1, n+1)}
 
         for i,j,k,l in itertools.product(range(1,n+1), repeat=4):
-            tmp = (mu[i]*mu[j]*mup[k]*mup[l] - mu[i]*mup[j]*mu[k]*mup[l])
+            tmp = mu[i]*mu[j]*mup[k]*mup[l] - mu[i]*mup[j]*mu[k]*mup[l]
             output += tmp * self.get_zij(i,j) * self.get_zij(k,j)
 
         return output/e0**2
@@ -168,7 +199,9 @@ class Watcher(FileViewer):
         assert dimension in ('x', 'y')
 
         space = self['columns/%s' % dimension]
+        space = space - np.mean(space)
         angle = self['columns/%sp' % dimension]
+        angle = angle - np.mean(angle)
 
         return np.sqrt(np.mean(space**2)*np.mean(angle**2) - np.mean(space*angle)**2)
 

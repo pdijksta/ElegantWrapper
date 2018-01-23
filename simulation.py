@@ -27,6 +27,10 @@ class ElegantSimulation:
             self.out = self._get_Watcher('%s.out' % self.rootname, s=self.sig['columns/s'][-1])
         except:
             print('No out file!')
+        try:
+            self.bun = self._get_Watcher('%s.bun' % self.rootname, s=0.)
+        except:
+            print('No bun file!')
 
         self.cen = self._get_FileViewer('%s.cen' % self.rootname)
         self.mag = self._get_FileViewer('%s.mag' % self.rootname)
@@ -50,13 +54,15 @@ class ElegantSimulation:
                 os.path.getmtime(processed_file) < os.path.getmtime(raw_file):
             status = os.system('sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file))
             if status != 0:
-                #raise SystemError(status)
-                print(status)
+                raise SystemError(status)
             print('Generated %s' % processed_file)
         return processed_file
 
-    def get_element_position(self, elementName):
+    def get_element_position(self, elementName, mean=False):
         s = self.mag['columns/s']
-        indices = np.argwhere(self.mag['columns/ElementName'] == bytes(elementName, 'utf-8')).squeeze()
-        return s[indices.min()], s[indices.max()]
+        indices = np.argwhere(self.mag['columns/ElementName'] == elementName).squeeze()
+        if mean:
+            return (s[indices.max()]+s[indices.min()])/2.
+        else:
+            return s[indices.min()], s[indices.max()]
 
