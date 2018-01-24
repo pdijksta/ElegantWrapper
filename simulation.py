@@ -22,7 +22,7 @@ class ElegantSimulation:
         self.filename = input_file
 
         self.sig = self._get_FileViewer('%s.sig' % self.rootname)
-        self.twiss = self._get_FileViewer('%s.twi' % self.rootname)
+        self.twiss = self.twi = self._get_FileViewer('%s.twi' % self.rootname)
         try:
             self.out = self._get_Watcher('%s.out' % self.rootname, s=self.sig['columns/s'][-1])
         except:
@@ -65,4 +65,17 @@ class ElegantSimulation:
             return (s[indices.max()]+s[indices.min()])/2.
         else:
             return s[indices.min()], s[indices.max()]
+
+    def get_watcher_list(self, key):
+        output = []
+        for w in self.watch:
+            output.append(w[key])
+        return np.array(output)
+
+    def get_watcher_func(self, funcname, *args, **kwargs):
+        output = []
+        for w in self.watch:
+            func = getattr(w, funcname)
+            output.append(func(*args, **kwargs))
+        return np.array(output)
 
