@@ -24,14 +24,22 @@ class FileViewer:
             else:
                 self.parameters = []
 
-    def __getitem__(self, key):
-        if key not in self._dict:
+    def __getitem__(self, key, page=1):
+
+        if key in self.columns and key not in self.parameters:
+            realkey = 'columns/' + key
+        elif key in self.parameters and key not in self.columns:
+            realkey = 'parameters/' + key
+        else:
+            realkey = key
+
+        if realkey not in self._dict:
             with h5py.File(self.filename, 'r') as ff:
-                out = np.array(ff['page1/'+key])
+                out = np.array(ff['page%i/' % page + realkey])
                 if out.dtype == 'O':
                     out = np.array(out, dtype='U')
-                self._dict[key] = out
-        return self._dict[key]
+                self._dict[realkey] = out
+        return self._dict[realkey]
 
     def print_tree(self):
         def name_and_size(key, ff):
@@ -56,8 +64,6 @@ class FileViewer:
             for column in self.columns:
                 output.append(str(self['columns/'+column][index].squeeze()))
             print('\t'.join(output))
-
-
 
 
 
@@ -106,7 +112,7 @@ class Watcher(FileViewer):
         return np.mean(self.zz**(i+j)) - np.mean(self.zz**i)*np.mean(self.zz**j)
 
     @functools.lru_cache()
-    def get_mn(self, dimension, n, twi0, sig0):
+    def get_mn(self, dimension, n, twi0, sig0, debug=False):
         assert dimension in ('x', 'y')
 
         index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
@@ -125,6 +131,8 @@ class Watcher(FileViewer):
         for i,j in itertools.product(range(1,n+1), repeat=2):
             output += (b0*mup[i]*mup[j] + g0*mu[i]*mu[j] + 2*a0*mu[i]*mup[j]) * self.get_zij(i,j)
 
+        if debug:
+            import pdb; pdb.set_trace()
         return output/e0
 
     @functools.lru_cache()
@@ -204,4 +212,22 @@ class Watcher(FileViewer):
         angle = angle - np.mean(angle)
 
         return np.sqrt(np.mean(space**2)*np.mean(angle**2) - np.mean(space*angle)**2)
+
+    def get_current(self, charge=None):
+        """
+        Use output with plt.step.
+        """
+        zz = self['columns/t']*c
+        zz -= zz.mean()
+        print('Max:', zz.max())
+        hist, bin_edges = np.histogram(zz, bins=50)
+        #sp.step(bin_edges[:-1], hist)
+        #sp.hist(zz, bins=50)
+        if charge is None:
+            factor = 1
+        else:
+            factor = charge*c/(np.diff(bin_edges)[0]*np.sum(hist))
+        return bin_edges, np.concatenate(([0,],hist*factor))
+
+
 
