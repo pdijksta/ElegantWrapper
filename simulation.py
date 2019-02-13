@@ -4,7 +4,7 @@ import glob
 import numpy as np
 
 from GenesisWrapper.simulation import InputParser
-from .watcher import Watcher, FileViewer
+from .watcher import Watcher, FileViewer, sdds2hdf
 
 class ElegantWrapperError(Exception):
     pass
@@ -13,7 +13,7 @@ class ElegantSimulation:
 
     comment_chars = ('!',)
 
-    def __init__(self, input_file, _file_=None, rootname=None):
+    def __init__(self, input_file, _file_=None, rootname=None, add_watch=None):
         if not input_file.endswith('.ele'):
             raise ElegantWrapperError('File is not an .ele')
         if _file_ is not None:
@@ -27,9 +27,11 @@ class ElegantSimulation:
             self.rootname = rootname
         self.filename = input_file
 
-        self.sig = self._get_FileViewer('%s.sig' % self.rootname)
-        if self.sig == 'no_file':
-            import pdb; pdb.set_trace()
+        try:
+            self.sig = self._get_FileViewer('%s.sig' % self.rootname)
+        except:
+            print('Weird sig error, continue!')
+            self.sig = None
         self.twiss = self.twi = self._get_FileViewer('%s.twi' % self.rootname)
         try:
             self.out = self._get_Watcher('%s.out' % self.rootname, s=self.sig['columns/s'][-1])
@@ -42,20 +44,41 @@ class ElegantSimulation:
             self.bun = None
             print('No bun file!')
 
+        try:
+            self.par = self._get_FileViewer('%s.par' % self.rootname)
+        except:
+            self.par = None
+            print('No par file!')
+
         matfile = os.path.join(self.directory, '%s.mat' % self.rootname)
         if os.path.isfile(matfile):
             self.mat = self._get_FileViewer('%s.mat' % self.rootname)
         else:
             self.mat = None
 
-        self.cen = self._get_FileViewer('%s.cen' % self.rootname)
+        try:
+            self.cen = self._get_FileViewer('%s.cen' % self.rootname)
+        except:
+            self.cen = None
         self.mag = self._get_FileViewer('%s.mag' % self.rootname)
 
-        watch_files = glob.glob(self.directory+'/%s-*.w1' % self.rootname)
+        watch_files = list(glob.glob(self.directory+'/%s*.w1' % self.rootname))
+        if add_watch:
+            watch_files.extend(add_watch)
         self.watch = [self._get_Watcher(f) for f in watch_files]
+        if self.watch:
+            s_list = np.array(self.get_watcher_list('s'))
+            try:
+                self.watch = list(list(zip(*sorted(zip(s_list, self.watch))))[1])
+            except Exception as e:
+                print(e)
+                import pdb; pdb.set_trace()
+
+    def __repr__(self):
+        return os.path.basename(self.filename)
+    __str__ = __repr__
 
     def _get_FileViewer(self, filename):
-
         try:
             processed_file = self._convert(filename)
             return FileViewer(processed_file, self)
@@ -70,21 +93,14 @@ class ElegantSimulation:
         raw_file = os.path.join(self.directory, filename)
         processed_file = raw_file + '.h5'
 
-        if not os.path.isfile(raw_file):
-            raise ElegantWrapperError('File %s does not exist!' % raw_file)
-
-        if not os.path.isfile(processed_file) or \
-                os.path.getmtime(processed_file) < os.path.getmtime(raw_file):
-            cmd = 'sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file)
-            status = os.system(cmd)
-            if status != 0:
-                raise SystemError('Status %i for file %s\nCommand: %s' % (status, filename, cmd))
-            print('Generated %s' % processed_file)
+        sdds2hdf(raw_file, processed_file)
         return processed_file
 
     def get_element_position(self, elementName, mean=False):
         s = self.mag['columns/s']
         indices = np.argwhere(self.mag['columns/ElementName'] == elementName).squeeze()
+        if len(indices) == 0:
+            raise KeyError('%s not found' % elementName)
         if mean:
             return (s[indices.max()]+s[indices.min()])/2.
         else:
