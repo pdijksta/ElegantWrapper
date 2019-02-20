@@ -34,25 +34,30 @@ def mu_fit_func(z, *parameters):
     return output
 
 class FileViewer:
-    def __init__(self, filename, sim=None):
+    def __init__(self, filename, sim=None, no_page1=False):
         if not filename.endswith('.h5'):
             raise ValueError('File is not an .h5')
         self.filename = filename
         self.sim = sim
         self._dict = {}
+        self.no_page1 = no_page1
 
         if not os.path.isfile(self.filename):
             raise OSError('File %s not found!' % self.filename)
         with h5py.File(self.filename, 'r') as ff:
-            keys0 = ff['page1'].keys()
-            if 'columns' in keys0:
-                self.columns = list(ff['page1/columns'].keys())
-            else:
-                self.columns = []
-            if 'parameters' in keys0:
-                self.parameters = list(ff['page1/parameters'].keys())
-            else:
+            if no_page1:
+                self.columns = list(ff.keys())
                 self.parameters = []
+            else:
+                keys0 = ff['page1'].keys()
+                if 'columns' in keys0:
+                    self.columns = list(ff['page1/columns'].keys())
+                else:
+                    self.columns = []
+                if 'parameters' in keys0:
+                    self.parameters = list(ff['page1/parameters'].keys())
+                else:
+                    self.parameters = []
 
     def __str__(self):
         return self.__class__.__name__+': '+os.path.basename(self.filename)
@@ -60,20 +65,30 @@ class FileViewer:
 
     def __getitem__(self, key, page=1):
 
-        if key in self.columns and key not in self.parameters:
-            realkey = 'columns/' + key
-        elif key in self.parameters and key not in self.columns:
-            realkey = 'parameters/' + key
-        else:
+        if self.no_page1:
             realkey = key
+            if realkey not in self._dict:
+                with h5py.File(self.filename, 'r') as ff:
+                    out = np.array(ff[realkey])
+                    if out.dtype == 'O':
+                        out = np.array(out, dtype='U')
+                    self._dict[realkey] = out
+            return self._dict[realkey]
+        else:
+            if key in self.columns and key not in self.parameters:
+                realkey = 'columns/' + key
+            elif key in self.parameters and key not in self.columns:
+                realkey = 'parameters/' + key
+            else:
+                realkey = key
 
-        if realkey not in self._dict:
-            with h5py.File(self.filename, 'r') as ff:
-                out = np.array(ff['page%i/' % page + realkey])
-                if out.dtype == 'O':
-                    out = np.array(out, dtype='U')
-                self._dict[realkey] = out
-        return self._dict[realkey]
+            if realkey not in self._dict:
+                with h5py.File(self.filename, 'r') as ff:
+                    out = np.array(ff['page%i/' % page + realkey])
+                    if out.dtype == 'O':
+                        out = np.array(out, dtype='U')
+                    self._dict[realkey] = out
+            return self._dict[realkey]
 
     def print_tree(self):
         def name_and_size(key, ff):
@@ -105,7 +120,7 @@ class Watcher(FileViewer):
         self.s = kwargs.pop('s', None)
         super().__init__(*args, **kwargs)
 
-        zz_0 = self['columns/t']*c
+        zz_0 = self['t']*c
         self.zz = zz_0 - np.mean(zz_0)
         if 'z' not in self._dict:
             self._dict['z'] = self.zz
@@ -308,14 +323,14 @@ class Watcher(FileViewer):
 
         return -np.mean(arr_x*arr_xp)/e
 
-    def get_current(self, charge=None):
+    def get_current(self, charge=None, bins=50):
         """
         Use output with plt.step.
         """
         zz = self['columns/t']*c
         zz -= zz.mean()
-        print('Max:', zz.max())
-        hist, bin_edges = np.histogram(zz, bins=50)
+        #print('Max:', zz.max())
+        hist, bin_edges = np.histogram(zz, bins=bins)
         #sp.step(bin_edges[:-1], hist)
         #sp.hist(zz, bins=50)
         if charge is None:
