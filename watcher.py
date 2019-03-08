@@ -69,7 +69,10 @@ class FileViewer:
             realkey = key
             if realkey not in self._dict:
                 with h5py.File(self.filename, 'r') as ff:
-                    out = np.array(ff[realkey])
+                    try:
+                        out = np.array(ff[realkey])
+                    except KeyError:
+                        raise KeyError('Key %s not found' % realkey)
                     if out.dtype == 'O':
                         out = np.array(out, dtype='U')
                     self._dict[realkey] = out
@@ -103,7 +106,7 @@ class FileViewer:
     def get_row(self, key, value):
         print('\t'.join(self.columns))
 
-        indices = np.argwhere(self['columns/'+key] == value)
+        indices = np.argwhere(self[key] == value)
         if len(indices) == 0:
             print('No results for %s in %s' % (key, self.filename))
             return
@@ -111,7 +114,7 @@ class FileViewer:
         for i_ctr, index in enumerate(indices):
             output = []
             for column in self.columns:
-                output.append(str(self['columns/'+column][index].squeeze()))
+                output.append(str(self[column][index].squeeze()))
             print('\t'.join(output))
 
 
@@ -293,12 +296,16 @@ class Watcher(FileViewer):
         return np.sqrt(np.mean(x**2)*np.mean(xp**2) - np.mean(x*xp)**2)
 
     @functools.lru_cache()
-    def get_emittance_from_beam(self, dimension):
+    def get_emittance_from_beam(self, dimension, normalized=False):
         assert dimension in ('x', 'y')
 
-        space = self['columns/%s' % dimension]
-        angle = self['columns/%sp' % dimension]
-        return self.get_emittance_from_points(space, angle)
+        space = self['%s' % dimension]
+        angle = self['%sp' % dimension]
+        if normalized:
+            norm_factor = np.mean(self['p'])
+        else:
+            norm_factor = 1
+        return self.get_emittance_from_points(space, angle)*norm_factor
 
     def get_beta_from_beam(self, dimension):
         assert dimension in ('x', 'y')
@@ -323,11 +330,21 @@ class Watcher(FileViewer):
 
         return -np.mean(arr_x*arr_xp)/e
 
+    def get_optics_from_beam(self, dimension):
+        """
+        Returns beta, alpha, gamma
+        """
+        return (
+                self.get_beta_from_beam(dimension),
+                self.get_alpha_from_beam(dimension),
+                self.get_gamma_from_beam(dimension),
+                )
+
     def get_current(self, charge=None, bins=50):
         """
         Use output with plt.step.
         """
-        zz = self['columns/t']*c
+        zz = self['t']*c
         zz -= zz.mean()
         #print('Max:', zz.max())
         hist, bin_edges = np.histogram(zz, bins=bins)
@@ -341,7 +358,7 @@ class Watcher(FileViewer):
 
     def get_beamsize(self, dimension):
         assert dimension in ('x', 'y', 'xp', 'yp', 't')
-        arr = self['columns/%s' % dimension]-np.mean(self['columns/%s' % dimension])
+        arr = self['%s' % dimension]-np.mean(self['%s' % dimension])
         return np.sqrt(np.mean(arr**2))
 
     def gaussianBeamsizeFit(self, dimension):
@@ -350,7 +367,7 @@ class Watcher(FileViewer):
         def gauss_function(x, a, x0, sigma):
             return a*np.exp(-(x-x0)**2/(2*sigma**2))
 
-        xx = self['columns/%s' % dimension]
+        xx = self[dimension]
         hist, bin_edges = np.histogram(xx, bins=50)
         xx = bin_edges[:-1]+np.diff(bin_edges).mean()/2
 
@@ -444,4 +461,37 @@ class Watcher2(Watcher):
             return self.parameters_dict[key[11:]]
         else:
             raise KeyError(key)
+
+class SliceCollection:
+    def __init__(self, slices, parent):
+        self.slices = slices
+        self.n_slices = len(slices)
+        self.parent = parent
+
+    def get_mismatch(self, dimension, reference):
+        if reference == 'proj':
+            reference = self.parent
+        beta_ref = reference.get_beta_from_beam(dimension)
+        alpha_ref = reference.get_alpha_from_beam(dimension)
+        gamma_ref = (1+alpha_ref**2)/beta_ref
+
+        mm_list = []
+        z_list = []
+        mean_t = self.parent['t'].mean()
+        for s in self.slices:
+            z_list.append((s['t'].mean()-mean_t)*c)
+            alpha = s.get_alpha_from_beam(dimension)
+            beta = s.get_beta_from_beam(dimension)
+            gamma = s.get_gamma_from_beam(dimension)
+            mismatch = (beta*gamma_ref - 2*alpha*alpha_ref + gamma*beta_ref)/2.
+            mm_list.append(mismatch)
+        return np.array(z_list), np.array(mm_list)
+
+    def get_slice_func(self, funcname, *args, **kwargs):
+        output = []
+        for s in self.slices:
+            func = getattr(s, funcname)
+            output.append(func(*args, **kwargs))
+        return np.array(output)
+
 
