@@ -30,25 +30,25 @@ class ElegantSimulation:
         try:
             self.sig = self._get_FileViewer('%s.sig' % self.rootname)
         except:
-            print('Weird sig error, continue!')
+            #print('Weird sig error, continue!')
             self.sig = None
         self.twiss = self.twi = self._get_FileViewer('%s.twi' % self.rootname)
         try:
             self.out = self._get_Watcher('%s.out' % self.rootname, s=self.sig['columns/s'][-1])
         except:
             self.out = None
-            print('No out file!')
+            #print('No out file!')
         try:
             self.bun = self._get_Watcher('%s.bun' % self.rootname, s=0.)
         except:
             self.bun = None
-            print('No bun file!')
+            #print('No bun file!')
 
         try:
             self.par = self._get_FileViewer('%s.par' % self.rootname)
         except:
             self.par = None
-            print('No par file!')
+            #print('No par file!')
 
         matfile = os.path.join(self.directory, '%s.mat' % self.rootname)
         if os.path.isfile(matfile):
@@ -62,17 +62,22 @@ class ElegantSimulation:
             self.cen = None
         self.mag = self._get_FileViewer('%s.mag' % self.rootname)
 
-        watch_files = list(glob.glob(self.directory+'/%s*.w1' % self.rootname))
+        watch_files = list(glob.glob(self.directory+'/%s[-_]*.w1' % self.rootname))
         if add_watch:
             watch_files.extend(add_watch)
-        self.watch = [self._get_Watcher(f) for f in watch_files]
-        if self.watch:
+
+        watch = [self._get_Watcher(f) for f in watch_files]
+        full_path_list = [w.filename for w in watch]
+        self.watch = watch = [watch[nn] for nn, path in enumerate(full_path_list) if path not in full_path_list[:nn]]
+        if watch:
+            # Only unique entries in watch list
             s_list = np.array(self.get_watcher_list('s'))
             try:
-                self.watch = list(list(zip(*sorted(zip(s_list, self.watch))))[1])
+                watch = list(list(zip(*sorted(zip(s_list, watch))))[1])
             except Exception as e:
                 print(e)
                 import pdb; pdb.set_trace()
+        self.watch = watch
 
     def __repr__(self):
         return os.path.basename(self.filename)
@@ -87,7 +92,8 @@ class ElegantSimulation:
 
     def _get_Watcher(self, filename, *args, **kwargs):
         processed_file = self._convert(filename)
-        return Watcher(processed_file, self, *args, **kwargs)
+        w = Watcher(processed_file, self, *args, **kwargs)
+        return w
 
     def _convert(self, filename):
         raw_file = os.path.join(self.directory, filename)

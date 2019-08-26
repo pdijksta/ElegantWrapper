@@ -1,5 +1,5 @@
 import os
-import functools
+#import functools
 import itertools
 import h5py
 import numpy as np
@@ -20,10 +20,12 @@ def sdds2hdf(file_in, file_out):
 
     if not os.path.isfile(processed_file) or \
             os.path.getmtime(processed_file) < os.path.getmtime(raw_file):
-        cmd = 'sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file)
+        #cmd = 'sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file)
+        cmd = 'sdds2hdf %s %s' % (raw_file, processed_file)
         status = os.system(cmd)
         if status != 0:
             raise SystemError('Status %i for file %s\nCommand: %s' % (status, raw_file, cmd))
+
         print('Generated %s' % processed_file)
 
 def mu_fit_func(z, *parameters):
@@ -58,6 +60,24 @@ class FileViewer:
                     self.parameters = list(ff['page1/parameters'].keys())
                 else:
                     self.parameters = []
+
+    def __lt__(self, other):
+        return self.filename < other.filename
+
+    def __le__(self, other):
+        return self.filename <= other.filename
+
+    def __eq__(self, other):
+        return self.filename == other.filename
+
+    def __ne__(self, other):
+        return self.filename != other.filename
+
+    def __gt__(self, other):
+        return self.filename > other.filename
+
+    def __ge__(self, other):
+        return self.filename >= other.filename
 
     def __str__(self):
         return self.__class__.__name__+': '+os.path.basename(self.filename)
@@ -142,7 +162,7 @@ class Watcher(FileViewer):
             self._dict['z'] = self.zz
         return self.zz
 
-    @functools.lru_cache()
+    #@functools.lru_cache()
     def get_mu(self, dimension, order=1):
         assert dimension in ('x', 'y', 'xp', 'yp')
 
@@ -153,11 +173,11 @@ class Watcher(FileViewer):
         fit, _ = optimize.curve_fit(mu_fit_func, self.zz, trans, [1]*order)
         return fit
 
-    @functools.lru_cache()
+    #@functools.lru_cache()
     def get_zij(self, i, j):
         return np.mean(self.zz**(i+j)) - np.mean(self.zz**i)*np.mean(self.zz**j)
 
-    @functools.lru_cache()
+    #@functools.lru_cache()
     def get_mn(self, dimension, n, twi0, sig0, debug=False):
         assert dimension in ('x', 'y')
 
@@ -193,31 +213,31 @@ class Watcher(FileViewer):
         gammatilde = (1. + alphatilde**2)/betatilde
         return float((gammatilde*mu**2 + betatilde*mup**2 + 2*alphatilde*mu*mup)/etilde*zz)
 
-    # This does not work
-    def get_new_mn(self, dimension, order):
-        "Don't use this"
+    ## This does not work
+    #def get_new_mn(self, dimension, order):
+    #    "Don't use this"
 
-        assert dimension in ('x', 'y')
-        mu = self.get_mu(dimension, order)
-        mup = self.get_mu(dimension+'p', order)
+    #    assert dimension in ('x', 'y')
+    #    mu = self.get_mu(dimension, order)
+    #    mup = self.get_mu(dimension+'p', order)
 
-        xz = mu_fit_func(self.zz, *mu)
-        untilted = self[dimension] - xz
-        untilted -= np.mean(untilted)
+    #    xz = mu_fit_func(self.zz, *mu)
+    #    untilted = self[dimension] - xz
+    #    untilted -= np.mean(untilted)
 
-        xpz = mu_fit_func(self.zz, *mup)
-        untilted_p = self[dimension+'p'] - xpz
-        untilted_p -= np.mean(untilted_p)
+    #    xpz = mu_fit_func(self.zz, *mup)
+    #    untilted_p = self[dimension+'p'] - xpz
+    #    untilted_p -= np.mean(untilted_p)
 
-        e0 = self.get_emittance_from_points(untilted, untilted_p)
-        b0 = np.var(untilted)/e0
-        g0 = np.var(untilted_p)/e0
-        a0 = np.sqrt(b0*g0 - 1)
+    #    e0 = self.get_emittance_from_points(untilted, untilted_p)
+    #    b0 = np.var(untilted)/e0
+    #    g0 = np.var(untilted_p)/e0
+    #    a0 = np.sqrt(b0*g0 - 1)
 
-        new_mn = (b0*np.mean(xpz**2) + g0*np.mean(xz**2) + 2*a0*np.mean(xz*xpz))/e0
-        return new_mn
+    #    new_mn = (b0*np.mean(xpz**2) + g0*np.mean(xz**2) + 2*a0*np.mean(xz*xpz))/e0
+    #    return new_mn
 
-    @functools.lru_cache()
+    #@functools.lru_cache()
     def get_mnstar(self, dimension, n, twi0, sig0):
         assert dimension in ('x', 'y')
         index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
@@ -295,7 +315,7 @@ class Watcher(FileViewer):
         xp = xp - np.mean(xp)
         return np.sqrt(np.mean(x**2)*np.mean(xp**2) - np.mean(x*xp)**2)
 
-    @functools.lru_cache()
+    #@functools.lru_cache()
     def get_emittance_from_beam(self, dimension, normalized=False):
         assert dimension in ('x', 'y')
 
@@ -340,11 +360,16 @@ class Watcher(FileViewer):
                 self.get_gamma_from_beam(dimension),
                 )
 
-    def get_current(self, charge=None, bins=50):
+    def get_current(self, t_or_z, charge=None, bins=50):
         """
         Use output with plt.step.
         """
-        zz = self['t']*c
+        if t_or_z == 't':
+            zz = self['t']
+        elif t_or_z == 'z':
+            zz = -self['t']*c
+        else:
+            raise ValueError('t_or_z must be either t or z, is:', t_or_z)
         zz -= zz.mean()
         #print('Max:', zz.max())
         hist, bin_edges = np.histogram(zz, bins=bins)
@@ -352,8 +377,10 @@ class Watcher(FileViewer):
         #sp.hist(zz, bins=50)
         if charge is None:
             factor = 1
-        else:
-            factor = charge*c/(np.diff(bin_edges)[0]*np.sum(hist))
+        elif t_or_z == 't':
+            factor = charge/(np.diff(bin_edges)[0]*np.sum(hist))
+        elif t_or_z == 'z':
+            factor = c*charge/(np.diff(bin_edges)[0]*np.sum(hist))
         return bin_edges, np.concatenate(([0,],hist*factor))
 
     def get_beamsize(self, dimension):
@@ -448,6 +475,10 @@ class Watcher2(Watcher):
         self.columns_dict = columns_dict
         self.parameters_dict = parameters_dict
 
+
+        zz_0 = self['t']*c
+        self.zz = zz_0 - np.mean(zz_0)
+
     def __getitem__(self, key):
         if key in self.columns and key in self.parameters:
             raise ValueError('Key %s in both columns and parameters!' % key)
@@ -468,6 +499,15 @@ class SliceCollection:
         self.n_slices = len(slices)
         self.parent = parent
 
+        s_list = []
+
+        mean_t = parent['t'].mean()
+
+        for s in slices:
+            s_list.append(-(np.mean(s['t'])-mean_t)*c)
+
+        self.s_arr = np.array(s_list)
+
     def get_mismatch(self, dimension, reference):
         if reference == 'proj':
             reference = self.parent
@@ -479,7 +519,7 @@ class SliceCollection:
         z_list = []
         mean_t = self.parent['t'].mean()
         for s in self.slices:
-            z_list.append((s['t'].mean()-mean_t)*c)
+            z_list.append(-(s['t'].mean()-mean_t)*c)
             alpha = s.get_alpha_from_beam(dimension)
             beta = s.get_beta_from_beam(dimension)
             gamma = s.get_gamma_from_beam(dimension)
@@ -487,11 +527,46 @@ class SliceCollection:
             mm_list.append(mismatch)
         return np.array(z_list), np.array(mm_list)
 
+    def get_misplacement(self, dimension, reference_optics, reference_orbit):
+        if hasattr(reference_optics, '__len__') and len(reference_optics) == 3:
+            beta_ref, alpha_ref, eps_ref = reference_optics
+        else:
+            if type(reference_optics) is str and reference_optics == 'proj':
+                reference = self.parent
+            else:
+                reference = reference_optics
+            beta_ref = reference.get_beta_from_beam(dimension)
+            alpha_ref = reference.get_alpha_from_beam(dimension)
+            eps_ref = reference.get_emittance_from_beam(dimension)
+        gamma_ref = (1+alpha_ref**2)/beta_ref
+
+
+        if reference_orbit == 'ref':
+            x_ref = reference[dimension].mean()
+            xp_ref = reference[dimension+'p'].mean()
+        else:
+            x_ref, xp_ref = reference_orbit
+
+        m = []
+        for s in self.slices:
+            x = np.mean(s[dimension]) - x_ref
+            xp = np.mean(s[dimension+'p']) - xp_ref
+
+            inv = (beta_ref*xp**2 + 2*alpha_ref*xp*x + gamma_ref*x**2)/eps_ref
+            m.append(inv)
+
+        return np.array(m)
+
+
+
+
+
     def get_slice_func(self, funcname, *args, **kwargs):
         output = []
         for s in self.slices:
             func = getattr(s, funcname)
             output.append(func(*args, **kwargs))
         return np.array(output)
+
 
 
