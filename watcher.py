@@ -20,8 +20,8 @@ def sdds2hdf(file_in, file_out):
 
     if not os.path.isfile(processed_file) or \
             os.path.getmtime(processed_file) < os.path.getmtime(raw_file):
-        #cmd = 'sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file)
-        cmd = 'sdds2hdf %s %s' % (raw_file, processed_file)
+        cmd = 'sdds2hdf %s %s 2>/dev/null 1>/dev/null' % (raw_file, processed_file)
+        #cmd = 'sdds2hdf %s %s' % (raw_file, processed_file)
         status = os.system(cmd)
         if status != 0:
             raise SystemError('Status %i for file %s\nCommand: %s' % (status, raw_file, cmd))
@@ -68,10 +68,10 @@ class FileViewer:
         return self.filename <= other.filename
 
     def __eq__(self, other):
-        return self.filename == other.filename
+        return hasattr(other, 'filename') and self.filename == other.filename
 
     def __ne__(self, other):
-        return self.filename != other.filename
+        return hasattr(other, 'filename') and self.filename != other.filename
 
     def __gt__(self, other):
         return self.filename > other.filename
@@ -360,9 +360,16 @@ class Watcher(FileViewer):
                 self.get_gamma_from_beam(dimension),
                 )
 
+    def get_mismatch(self, dimension, beta_ref, alpha_ref):
+        beta, alpha, gamma = self.get_optics_from_beam(dimension)
+        gamma_ref = (1+alpha_ref**2)/beta_ref
+        mismatch = (beta*gamma_ref - 2*alpha*alpha_ref + gamma*beta_ref)/2.
+        #import pdb; pdb.set_trace()
+        return mismatch
+
     def get_current(self, t_or_z, charge=None, bins=50):
         """
-        Use output with plt.step.
+        Output: bin_edges, bin_values. Use with with plt.step.
         """
         if t_or_z == 't':
             zz = self['t']
@@ -462,6 +469,26 @@ class Watcher(FileViewer):
         sdds2hdf(new_name, new_name_h5)
         return FileViewer(new_name_h5)
 
+    def toSDDS(self, filename):
+        with open(filename, 'w') as fid:
+            fid.write('SDDS1\n')
+            #fid.write('&column name=z,    units=m,    type=double,    &end\n')
+            fid.write('&column name=t,    units=s,    type=double,    &end\n')
+            fid.write('&column name=x,    units=m,  type=double,    &end\n')
+            fid.write('&column name=y,    units=m,  type=double,    &end\n')
+            fid.write('&column name=xp,  type=double,    &end\n')
+            fid.write('&column name=yp,  type=double,    &end\n')
+            fid.write('&column name=p,    units=m$be$nc,  type=double,    &end\n')
+            fid.write('&data mode=ascii, &end\n')
+            #fid.write('! page number 1\n')
+            fid.write('%i\n' % len(self['t']))
+            for t, x, y, xp, yp, p in zip(
+                    self['t'], self['x'], self['y'], self['xp'], self['yp'], self['p']):
+                fid.write('  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e\n' % (t, x, y, xp, yp, p))
+
+
+
+
 class Watcher2(Watcher):
     """
     Pseudo Watcher that returns values from a dictionary but otherweise behaves like a Watcher.
@@ -511,8 +538,13 @@ class SliceCollection:
     def get_mismatch(self, dimension, reference):
         if reference == 'proj':
             reference = self.parent
-        beta_ref = reference.get_beta_from_beam(dimension)
-        alpha_ref = reference.get_alpha_from_beam(dimension)
+        if hasattr(reference, '__len__') and len(reference) == 2:
+            beta_ref, alpha_ref = reference
+        elif hasattr(reference, 'get_beta_from_beam'):
+            beta_ref = reference.get_beta_from_beam(dimension)
+            alpha_ref = reference.get_alpha_from_beam(dimension)
+        else:
+            raise ValueError(reference)
         gamma_ref = (1+alpha_ref**2)/beta_ref
 
         mm_list = []
@@ -557,16 +589,10 @@ class SliceCollection:
 
         return np.array(m)
 
-
-
-
-
     def get_slice_func(self, funcname, *args, **kwargs):
         output = []
         for s in self.slices:
             func = getattr(s, funcname)
             output.append(func(*args, **kwargs))
         return np.array(output)
-
-
 

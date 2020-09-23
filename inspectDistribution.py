@@ -9,7 +9,7 @@ try:
 except ImportError:
     from . import watcher
 
-def inspect(watcher, bins=(100,100), show=True, title=None):
+def inspect(watcher, bins=(100,100), show=True, title=None, charge=200e-12):
     dimensions = 'x', 'xp', 'y', 'yp', 't', 'p'
 
     if title is None:
@@ -32,7 +32,7 @@ def inspect(watcher, bins=(100,100), show=True, title=None):
             sp.hist2d(x_arr, y_arr, bins=bins)
 
     sp = subplot(sp_ctr, title='Beam current', xlabel='t', ylabel='I [A]', scix=True, sciy=True, grid=False)
-    xx, yy = watcher.get_current('t', bins=bins[0])
+    xx, yy = watcher.get_current('t', bins=bins[0], charge=charge)
     sp.step(xx, yy)
 
     if show:

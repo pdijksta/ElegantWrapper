@@ -43,7 +43,7 @@ def colorprog(ctr, max_ctr_or_list, colormap='hsv'):
     else:
         return plt.get_cmap(colormap)(ctr/max_ctr_or_list)
 
-def saveall(basepath, hspace=0.2, wspace=0.2, figs=None, **kwargs):
+def saveall(basepath, hspace=0.2, wspace=0.2, trim=True, figs=None, ending='.png', **kwargs):
     if figs is None:
         figs = [plt.figure(num) for num in plt.get_fignums()]
     for fig in figs:
@@ -52,16 +52,20 @@ def saveall(basepath, hspace=0.2, wspace=0.2, figs=None, **kwargs):
 
         title = fig.canvas.get_window_title()
         plt.suptitle('')
-        path = basepath+'_%i.png' % num
-        fig.savefig(path, **kwargs)
+        path = os.path.expanduser(basepath)+'_%i%s' % (num, ending)
+        fig.savefig(path, transparent=True, bbox_inches='tight', pad_inches=0, **kwargs)
+        if trim:
+            cmd = 'convert -trim %s %s' % (path, path)
+            print(cmd)
+            os.system(cmd)
         print('Saved fig %i with title %s in %s' % (num, title, path))
 
 def subplot_factory(ny, nx, grid=True):
     _sciy = sciy
     _scix = scix
 
-    def subplot(x, grid=grid, title=None, xlabel=None, ylabel=None, sciy=False, scix=False, sharex=None, sharey=None, title_fs=None):
-        sp = plt.subplot(ny, nx, x, sharex=sharex, sharey=sharey)
+    def subplot(x, grid=grid, title=None, xlabel=None, ylabel=None, sciy=False, scix=False, sharex=None, sharey=None, title_fs=None, **kwargs):
+        sp = plt.subplot(ny, nx, x, sharex=sharex, sharey=sharey, **kwargs)
         if grid:
             sp.grid(True)
         if title:
