@@ -38,18 +38,15 @@ class ElegantSimulation:
             self.out = self._get_Watcher('%s.out' % self.rootname, s=self.sig['columns/s'][-1])
         except:
             self.out = None
-            #print('No out file!')
         try:
             self.bun = self._get_Watcher('%s.bun' % self.rootname, s=0.)
         except:
             self.bun = None
-            #print('No bun file!')
 
         try:
             self.par = self._get_FileViewer('%s.par' % self.rootname)
         except:
             self.par = None
-            #print('No par file!')
 
         matfile = os.path.join(self.directory, '%s.mat' % self.rootname)
         if os.path.isfile(matfile):
@@ -57,10 +54,7 @@ class ElegantSimulation:
         else:
             self.mat = None
 
-        try:
-            self.cen = self._get_FileViewer('%s.cen' % self.rootname)
-        except:
-            self.cen = None
+        self.cen = self._get_FileViewer('%s.cen' % self.rootname)
         self.mag = self._get_FileViewer('%s.mag' % self.rootname)
 
         watch_files = list(glob.glob(self.directory+'/%s[-_]*.w1' % self.rootname))
@@ -77,9 +71,15 @@ class ElegantSimulation:
                 watch = list(list(zip(*sorted(zip(s_list, watch))))[1])
             except Exception as e:
                 print(e)
-                import pdb; pdb.set_trace()
         self.watch = watch
         self.del_sim = False
+
+    def __del__(self):
+        if self.del_sim:
+            directory = os.path.dirname(self.filename)
+            if os.path.isdir(directory):
+                shutil.rmtree(directory)
+                print('Deleted %s' % directory)
 
     def __repr__(self):
         return os.path.basename(self.filename)
@@ -90,6 +90,7 @@ class ElegantSimulation:
             processed_file = self._convert(filename)
             return FileViewer(processed_file, self)
         except ElegantWrapperError:
+            #import pdb; pdb.set_trace()
             return 'no_file'
 
     def _get_Watcher(self, filename, *args, **kwargs):
@@ -139,10 +140,4 @@ class ElegantSimulation:
 
         return np.sqrt(x*xp - xxp**2)
 
-    def __del__(self):
-        if self.del_sim:
-            dirname = os.path.dirname(self.filename)
-            print('Removing directory: %s' % dirname)
-            if os.path.isdir(dirname):
-                shutil.rmtree(dirname)
 
