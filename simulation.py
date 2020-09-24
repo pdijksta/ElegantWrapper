@@ -1,3 +1,4 @@
+import shutil
 import os
 import glob
 
@@ -78,6 +79,7 @@ class ElegantSimulation:
                 print(e)
                 import pdb; pdb.set_trace()
         self.watch = watch
+        self.del_sim = False
 
     def __repr__(self):
         return os.path.basename(self.filename)
@@ -105,6 +107,8 @@ class ElegantSimulation:
     def get_element_position(self, elementName, mean=False):
         s = self.mag['columns/s']
         indices = np.argwhere(self.mag['columns/ElementName'] == elementName).squeeze()
+        if indices.shape == ():
+            indices = np.array([indices])
         if len(indices) == 0:
             raise KeyError('%s not found' % elementName)
         if mean:
@@ -134,4 +138,11 @@ class ElegantSimulation:
             x, xp, xxp = get_entry('s3')**2, get_entry('s4')**2, get_entry('s34')
 
         return np.sqrt(x*xp - xxp**2)
+
+    def __del__(self):
+        if self.del_sim:
+            dirname = os.path.dirname(self.filename)
+            print('Removing directory: %s' % dirname)
+            if os.path.isdir(dirname):
+                shutil.rmtree(dirname)
 

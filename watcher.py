@@ -21,12 +21,12 @@ def sdds2hdf(file_in, file_out):
     if not os.path.isfile(processed_file) or \
             os.path.getmtime(processed_file) < os.path.getmtime(raw_file):
         #cmd = 'sdds2hdf %s %s 2>&1 >/dev/null' % (raw_file, processed_file)
-        cmd = 'sdds2hdf %s %s' % (raw_file, processed_file)
+        cmd = 'sdds2hdf %s %s 2>/dev/null' % (raw_file, processed_file)
         status = os.system(cmd)
         if status != 0:
             raise SystemError('Status %i for file %s\nCommand: %s' % (status, raw_file, cmd))
 
-        print('Generated %s' % processed_file)
+        #print('Generated %s' % processed_file)
 
 def mu_fit_func(z, *parameters):
     output = 0
