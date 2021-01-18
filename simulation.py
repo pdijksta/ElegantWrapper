@@ -14,7 +14,7 @@ class ElegantSimulation:
 
     comment_chars = ('!',)
 
-    def __init__(self, input_file, _file_=None, rootname=None, add_watch=None):
+    def __init__(self, input_file, _file_=None, rootname=None, add_watch=None, del_sim=False):
         if not input_file.endswith('.ele'):
             raise ElegantWrapperError('File is not an .ele')
         if _file_ is not None:
@@ -72,7 +72,7 @@ class ElegantSimulation:
             except Exception as e:
                 print(e)
         self.watch = watch
-        self.del_sim = False
+        self.del_sim = del_sim
 
     def __del__(self):
         if self.del_sim:
