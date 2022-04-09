@@ -43,7 +43,7 @@ def colorprog(ctr, max_ctr_or_list, colormap='hsv'):
     else:
         return plt.get_cmap(colormap)(ctr/max_ctr_or_list)
 
-def saveall(basepath, hspace=0.2, wspace=0.2, trim=True, figs=None, ending='.png', **kwargs):
+def saveall(basepath, hspace=0.2, wspace=0.2, trim=True, figs=None, ending='.png', transparent=False, **kwargs):
     if figs is None:
         figs = [plt.figure(num) for num in plt.get_fignums()]
     for fig in figs:
@@ -53,7 +53,7 @@ def saveall(basepath, hspace=0.2, wspace=0.2, trim=True, figs=None, ending='.png
         title = fig.canvas.get_window_title()
         plt.suptitle('')
         path = os.path.expanduser(basepath)+'_%i%s' % (num, ending)
-        fig.savefig(path, transparent=True, bbox_inches='tight', pad_inches=0, **kwargs)
+        fig.savefig(path, transparent=transparent, bbox_inches='tight', pad_inches=0, **kwargs)
         if trim:
             cmd = 'convert -trim %s %s' % (path, path)
             print(cmd)
