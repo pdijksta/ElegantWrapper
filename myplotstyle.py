@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import colorsys
+import matplotlib
 import matplotlib.pyplot as plt
 
 
@@ -12,7 +13,11 @@ def figure(title='', figsize=(12, 10), **kwargs):
     fig = plt.figure(figsize=figsize, **kwargs)
     fig.canvas.set_window_title(title)
     fig.patch.set_facecolor('w')
-    plt.suptitle(title, fontsize=16)
+    if matplotlib.rcParams['text.usetex']:
+        real_title = r'\begin{verbatim}'+title+r'\end{verbatim}'
+    else:
+        real_title = title
+    plt.suptitle(real_title, fontsize=16)
     #fig.subplots_adjust(left=0.07, right=0.80, wspace=0.5)
     return fig
 
