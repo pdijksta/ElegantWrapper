@@ -177,12 +177,15 @@ class Watcher(FileViewer):
         return np.mean(self.zz**(i+j)) - np.mean(self.zz**i)*np.mean(self.zz**j)
 
     #@functools.lru_cache()
-    def get_mn(self, dimension, n, twi0, sig0, debug=False):
+    def get_mn(self, dimension, n, twi0, sig0_or_e0, debug=False):
         assert dimension in ('x', 'y')
 
         index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
 
-        e0 = sig0['columns/e%s' % dimension][index]
+        try:
+            e0 = float(sig0_or_e0)
+        except:
+            e0 = sig0_or_e0['columns/e%s' % dimension][index]
         b0 = twi0['columns/beta%s' % dimension][index]
         a0 = twi0['columns/alpha%s' % dimension][index]
         g0 = (1. + a0**2)/b0
