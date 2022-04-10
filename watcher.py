@@ -142,7 +142,7 @@ class Watcher(FileViewer):
         self.s = kwargs.pop('s', None)
         super().__init__(*args, **kwargs)
 
-        zz_0 = self['t']*c
+        zz_0 = -self['t']*c
         self.zz = zz_0 - np.mean(zz_0)
         if 'z' not in self._dict:
             self._dict['z'] = self.zz
