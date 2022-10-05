@@ -9,11 +9,11 @@ try:
 except ImportError:
     from . import watcher
 
-def inspect(watcher, bins=(100,100), show=True, title=None, charge=200e-12):
+def inspect(watcher, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True):
     dimensions = 'x', 'xp', 'y', 'yp', 't', 'p'
 
     if title is None:
-        title = watcher
+        title = str(watcher)
     fig = ms.figure(title)
     plt.subplots_adjust(hspace=0.35, wspace=0.25, bottom=0.1)
     subplot = ms.subplot_factory(4,4)
@@ -25,14 +25,15 @@ def inspect(watcher, bins=(100,100), show=True, title=None, charge=200e-12):
             sp_ctr += 1
             x_arr = watcher[dim1]
             y_arr = watcher[dim2]
-            if dim1 == 't':
-                x_arr = x_arr - x_arr.mean()
-            if dim2 == 't':
-                y_arr = y_arr - y_arr.mean()
+            if center_time:
+                if dim1 == 't':
+                    x_arr = x_arr - x_arr.mean()
+                if dim2 == 't':
+                    y_arr = y_arr - y_arr.mean()
             sp.hist2d(x_arr, y_arr, bins=bins)
 
     sp = subplot(sp_ctr, title='Beam current', xlabel='t', ylabel='I [A]', scix=True, sciy=True, grid=False)
-    xx, yy = watcher.get_current('t', bins=bins[0], charge=charge)
+    xx, yy = watcher.get_current('t', bins=bins[0], charge=charge, center_time=center_time)
     sp.step(xx, yy)
 
     if show:

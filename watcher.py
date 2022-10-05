@@ -369,7 +369,7 @@ class Watcher(FileViewer):
         #import pdb; pdb.set_trace()
         return mismatch
 
-    def get_current(self, t_or_z, charge=None, bins=50):
+    def get_current(self, t_or_z, charge=None, bins=50, center_time=True):
         """
         Output: bin_edges, bin_values. Use with with plt.step.
         """
@@ -379,7 +379,8 @@ class Watcher(FileViewer):
             zz = -self['t']*c
         else:
             raise ValueError('t_or_z must be either t or z, is:', t_or_z)
-        zz -= zz.mean()
+        if center_time:
+            zz -= zz.mean()
         #print('Max:', zz.max())
         hist, bin_edges = np.histogram(zz, bins=bins)
         #sp.step(bin_edges[:-1], hist)
