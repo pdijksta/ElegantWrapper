@@ -215,31 +215,6 @@ class Watcher(FileViewer):
         gammatilde = (1. + alphatilde**2)/betatilde
         return float((gammatilde*mu**2 + betatilde*mup**2 + 2*alphatilde*mu*mup)/etilde*zz)
 
-    ## This does not work
-    #def get_new_mn(self, dimension, order):
-    #    "Don't use this"
-
-    #    assert dimension in ('x', 'y')
-    #    mu = self.get_mu(dimension, order)
-    #    mup = self.get_mu(dimension+'p', order)
-
-    #    xz = mu_fit_func(self.zz, *mu)
-    #    untilted = self[dimension] - xz
-    #    untilted -= np.mean(untilted)
-
-    #    xpz = mu_fit_func(self.zz, *mup)
-    #    untilted_p = self[dimension+'p'] - xpz
-    #    untilted_p -= np.mean(untilted_p)
-
-    #    e0 = self.get_emittance_from_points(untilted, untilted_p)
-    #    b0 = np.var(untilted)/e0
-    #    g0 = np.var(untilted_p)/e0
-    #    a0 = np.sqrt(b0*g0 - 1)
-
-    #    new_mn = (b0*np.mean(xpz**2) + g0*np.mean(xz**2) + 2*a0*np.mean(xz*xpz))/e0
-    #    return new_mn
-
-    #@functools.lru_cache()
     def get_mnstar(self, dimension, n, twi0, sig0):
         assert dimension in ('x', 'y')
         index = np.argwhere(twi0['columns/s'] == self.s)[0,0]
