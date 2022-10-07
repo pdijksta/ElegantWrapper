@@ -394,9 +394,13 @@ class Watcher(FileViewer):
         return bin_edges, np.concatenate(([0,],hist*factor))
 
     def get_beamsize(self, dimension):
-        assert dimension in ('x', 'y', 'xp', 'yp', 't')
-        arr = self['%s' % dimension]-np.mean(self['%s' % dimension])
+        assert dimension in ('x', 'y', 'xp', 'yp', 't', 'p')
+        arr = self[dimension]-np.mean(self[dimension])
         return np.sqrt(np.mean(arr**2))
+
+    def get_mean(self, dimension):
+        assert dimension in ('x', 'y', 'xp', 'yp', 't', 'p')
+        return np.sqrt(np.mean(self[dimension]))
 
     def gaussianBeamsizeFit(self, dimension):
         assert dimension in ('x', 'y', 'xp', 'yp')
@@ -422,7 +426,7 @@ class Watcher(FileViewer):
         Method may be const_delta or const_size
         """
         if axis == 'z':
-            xx = self['t']*c
+            xx = -self['t']*c
         else:
             xx = self[axis]
         xx = xx - xx.mean()

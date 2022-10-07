@@ -1,6 +1,9 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.constants import c, m_e, e
+
+m_e_eV = m_e*c**2/e
 
 from GenesisWrapper import match_particle_dist
 try:
@@ -10,14 +13,14 @@ except ImportError:
     from . import watcher
     from . import myplotstyle as ms
 
-def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True):
+def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True, fig_kwargs={}):
     dimensions = 'x', 'xp', 'y', 'yp', 't', 'p'
-    units = '$\mu$m', '$\mu$rad', '$\mu$m', '$\mu$rad', 'fs', 'GeV'
-    factors = 1e6, 1e6, 1e6, 1e6, 1e15, 511e3/1e9
+    units = '$\mu$m', '$\mu$rad', '$\mu$m', '$\mu$rad', 'fs', 'GeV/c'
+    factors = 1e6, 1e6, 1e6, 1e6, 1e15, m_e_eV/1e9
 
     if title is None:
         title = str(watch)
-    fig = ms.figure(title)
+    fig = ms.figure(title, **fig_kwargs)
     plt.subplots_adjust(hspace=0.35, wspace=0.25, bottom=0.1)
     subplot = ms.subplot_factory(4,5,False)
     sp_ctr = 1
@@ -42,11 +45,14 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
 
     sp = subplot(sp_ctr, title='Beam current', xlabel='t (fs)', ylabel='I (kA)')
     sp_ctr += 1
-    xx, yy = watch.get_current('t', bins=bins[0], charge=charge, center_time=center_time)
-    sp.step(xx*1e15, yy/1e3)
+    curr_time, curr = watch.get_current('t', bins=bins[0], charge=charge, center_time=center_time)
+    sp.step(curr_time*1e15, curr/1e3)
 
     sp = subplot(sp_ctr, title='Norm. emittance', xlabel='t (fs)', ylabel='$\epsilon_n$ (nm)')
     sp_ctr += 1
+    sp_curr = sp.twinx()
+    sp_curr.set_ylabel('I (kA)')
+    sp_curr.step(curr_time*1e15, curr/1e3, color='black')
 
     slices = watcher.SliceCollection(watch.slice_beam(bins[0]), watch)
     tt = np.array([s['t'].mean() for s in slices.slices])
@@ -54,6 +60,31 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
         em = slices.get_slice_func('get_emittance_from_beam', dim, True)
         sp.plot(tt*1e15, em*1e9, label=dim)
     sp.legend()
+
+    sp = subplot(sp_ctr, title='Energy spread', xlabel='t (fs)', ylabel='$\sigma_E$ (MeV)')
+    sp_ctr += 1
+    sp_curr = sp.twinx()
+    sp_curr.set_ylabel('I (kA)')
+    sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+
+    pspread = slices.get_slice_func('get_beamsize', 'p')
+    espread = pspread*m_e_eV
+    sp.plot(tt*1e15, espread/1e6)
+
+    sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='C (1/m)')
+    sp_ctr += 1
+    sp_curr = sp.twinx()
+    sp_curr.set_ylabel('I (kA)')
+    sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+
+
+    pmean = slices.get_slice_func('get_mean', 'p')
+    emean_rel = pmean*m_e_eV / watch['p'].mean()
+    zz = -tt*c
+    rel_chirp = np.diff(emean_rel)/np.diff(zz)
+    tt_plot = tt[:-1] + (tt[1] - tt[0])/2
+    sp.plot(tt_plot*1e15, rel_chirp)
+
 
     if show:
         plt.show()
