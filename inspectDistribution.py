@@ -54,12 +54,28 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     sp_curr.set_ylabel('I (kA)')
     sp_curr.step(curr_time*1e15, curr/1e3, color='black')
 
+    sp_beta = subplot(sp_ctr, title='Slice optics', xlabel='t (fs)', ylabel=r'$\beta$ (m)')
+    sp_ctr += 1
+    sp_alpha = sp_beta.twinx()
+    sp_alpha.set_ylabel(r'$\alpha$')
+
     slices = watcher.SliceCollection(watch.slice_beam(bins[0]), watch)
     tt = np.array([s['t'].mean() for s in slices.slices])
     for dim in ('x', 'y'):
         em = slices.get_slice_func('get_emittance_from_beam', dim, True)
+        beta = slices.get_slice_func('get_beta_from_beam', dim)
+        alpha = slices.get_slice_func('get_alpha_from_beam', dim)
         sp.plot(tt*1e15, em*1e9, label=dim)
+        color = sp_beta.plot(tt*1e15, beta, label=dim)[0].get_color()
+        sp_alpha.plot(tt*1e15, alpha, ls='--', color=color)
+
+        beta = watch.get_beta_from_beam(dim)
+        alpha = watch.get_alpha_from_beam(dim)
+        color = {'x': 'black', 'y': 'gray'}[dim]
+        sp_beta.axhline(beta, color=color, ls='solid')
+        sp_alpha.axhline(alpha, color=color, ls='dotted')
     sp.legend()
+    sp_beta.legend()
 
     sp = subplot(sp_ctr, title='Energy spread', xlabel='t (fs)', ylabel='$\sigma_E$ (MeV)')
     sp_ctr += 1
@@ -90,7 +106,6 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
         plt.show()
 
     return fig
-
 
 if __name__ == '__main__':
     in_ = sys.argv[1]

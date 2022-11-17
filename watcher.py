@@ -292,7 +292,6 @@ class Watcher(FileViewer):
         xp = xp - np.mean(xp)
         return np.sqrt(np.mean(x**2)*np.mean(xp**2) - np.mean(x*xp)**2)
 
-    #@functools.lru_cache()
     def get_emittance_from_beam(self, dimension, normalized=False):
         assert dimension in ('x', 'y')
 
