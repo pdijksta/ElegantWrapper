@@ -374,7 +374,7 @@ class Watcher(FileViewer):
 
     def get_mean(self, dimension):
         assert dimension in ('x', 'y', 'xp', 'yp', 't', 'p')
-        return np.sqrt(np.mean(self[dimension]))
+        return np.mean(self[dimension])
 
     def gaussianBeamsizeFit(self, dimension):
         assert dimension in ('x', 'y', 'xp', 'yp')

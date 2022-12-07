@@ -87,7 +87,7 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     espread = pspread*m_e_eV
     sp.plot(tt*1e15, espread/1e6)
 
-    sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='C (1/m)')
+    sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='Chirp (MeV/fs)')
     sp_ctr += 1
     sp_curr = sp.twinx()
     sp_curr.set_ylabel('I (kA)')
@@ -95,12 +95,10 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
 
 
     pmean = slices.get_slice_func('get_mean', 'p')
-    emean_rel = pmean*m_e_eV / watch['p'].mean()
-    zz = -tt*c
-    rel_chirp = np.diff(emean_rel)/np.diff(zz)
+    emean = pmean*m_e_eV
+    chirp = np.diff(emean)/np.diff(tt)
     tt_plot = tt[:-1] + (tt[1] - tt[0])/2
-    sp.plot(tt_plot*1e15, rel_chirp)
-
+    sp.plot(tt_plot*1e15, chirp/1e6/1e15)
 
     if show:
         plt.show()
