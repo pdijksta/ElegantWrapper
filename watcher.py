@@ -49,7 +49,9 @@ class FileViewer:
             if no_page1:
                 self.columns = list(ff.keys())
                 self.parameters = []
+                self.pages = self.columns
             else:
+                self.pages = list(ff.keys())
                 keys0 = ff['page1'].keys()
                 if 'columns' in keys0:
                     self.columns = list(ff['page1/columns'].keys())
