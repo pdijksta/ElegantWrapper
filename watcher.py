@@ -4,7 +4,9 @@ import itertools
 import h5py
 import numpy as np
 import scipy.optimize as optimize
-from scipy.constants import c
+from scipy.constants import c, m_e, e
+
+m_e_eV = m_e*c**2/e
 
 
 def sdds2hdf(file_in, file_out):
@@ -578,4 +580,30 @@ class SliceCollection:
             func = getattr(s, funcname)
             output.append(func(*args, **kwargs))
         return np.array(output)
+
+
+def watcher_to_parray(w, charge):
+    nn = w['x'].size
+    rparticles = np.zeros([6, nn])
+    rparticles[0] = w['x']
+    rparticles[1] = w['xp']
+    rparticles[2] = w['y']
+    rparticles[3] = w['yp']
+    rparticles[4] = w['t']*c
+    rparticles[5] = w['p'] / w['p'].mean() - 1
+    E = w['p'].mean()/1e9
+    q_array = np.ones(nn, float) * charge / nn
+    return rparticles, E, q_array
+
+def parray_to_watcher(pa):
+    dd = {}
+    rparticles = pa.rparticles
+    energy_eV = pa.E*1e9
+    dd['x'] = rparticles[0]
+    dd['xp'] = rparticles[1]
+    dd['y'] = rparticles[2]
+    dd['yp'] = rparticles[3]
+    dd['t'] = rparticles[4]/c
+    dd['p'] = energy_eV * (1 + rparticles[5])
+    return Watcher2({}, dd)
 
