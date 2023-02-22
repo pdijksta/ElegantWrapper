@@ -414,7 +414,10 @@ class Watcher(FileViewer):
             xx_min, xx_max = np.min(xx), np.max(xx)
             delta = (xx_max-xx_min)/n_bins
             for n_bin in range(n_bins):
-                this_mask = np.logical_and(xx_min+n_bin*delta < xx, xx_min+(n_bin+1)*delta > xx)
+                if n_bin == n_bins-1:
+                    this_mask = np.logical_and(xx_min+n_bin*delta <= xx, xx_min+(n_bin+1)*delta >= xx)
+                else:
+                    this_mask = np.logical_and(xx_min+n_bin*delta <= xx, xx_min+(n_bin+1)*delta > xx)
                 columns_dict = {column: self[column][this_mask] for column in self.columns}
                 parameters_dict = {parameter: self[parameter] for parameter in self.parameters}
                 new_slice = Watcher2(parameters_dict, columns_dict, s=self.s)
