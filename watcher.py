@@ -602,11 +602,11 @@ def parray_to_watcher(pa):
     dd = {}
     rparticles = pa.rparticles
     energy_eV = pa.E*1e9
-    dd['x'] = rparticles[0]
-    dd['xp'] = rparticles[1]
-    dd['y'] = rparticles[2]
-    dd['yp'] = rparticles[3]
-    dd['t'] = rparticles[4]/c
-    dd['p'] = energy_eV * (1 + rparticles[5])
+    dd['x'] = rparticles[0].copy()
+    dd['xp'] = rparticles[1].copy()
+    dd['y'] = rparticles[2].copy()
+    dd['yp'] = rparticles[3].copy()
+    dd['t'] = rparticles[4].copy()/c
+    dd['p'] = energy_eV * (1 + rparticles[5].copy())
     return Watcher2({}, dd)
 
