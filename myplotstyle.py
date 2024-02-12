@@ -11,7 +11,7 @@ def set_fontsizes(fontsize):
 
 def figure(title='', figsize=(12, 10), **kwargs):
     fig = plt.figure(figsize=figsize, **kwargs)
-    fig.canvas.set_window_title(title)
+    fig.canvas.manager.set_window_title(title)
     fig.patch.set_facecolor('w')
     if matplotlib.rcParams['text.usetex']:
         real_title = r'\begin{verbatim}'+title+r'\end{verbatim}'
