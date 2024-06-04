@@ -142,9 +142,9 @@ class FileViewer:
 
 
 class Watcher(FileViewer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, filename, *args, **kwargs):
+        FileViewer.__init__(self, filename, *args, **kwargs)
         self.s = kwargs.pop('s', None)
-        super().__init__(*args, **kwargs)
 
         zz_0 = -self['t']*c
         self.zz = zz_0 - np.mean(zz_0)

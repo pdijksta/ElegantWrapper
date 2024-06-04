@@ -1,17 +1,23 @@
 import os
+import pdb
+
 # Generic
-def copy_and_replace_file(dirname, filename, replace):
+def copy_and_replace_file(dirname, filename, replace, call_pdb=False):
     try:
         with open(filename, 'r') as f:
             lines = f.readlines()
             full_input = ''.join(lines)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print(filename, 'not found')
-        import pdb; pdb.set_trace()
+        if call_pdb:
+            pdb.set_trace()
 
     for keyword in replace:
         if keyword not in full_input:
-            raise ValueError('%s not part of %s!' % (keyword, filename))
+            print('%s not part of %s!' % (keyword, filename))
+            if call_pdb:
+                pdb.set_trace()
+            raise ValueError
 
     if replace:
         new_lines = []
@@ -24,13 +30,18 @@ def copy_and_replace_file(dirname, filename, replace):
 
         for line in new_lines:
             if '__' in line:
-                raise ValueError('Not all converted:\n', line)
+                print('Not all converted:\n', line)
+                if call_pdb:
+                    pdb.set_trace()
+                raise ValueError
 
     try:
         filename_out = os.path.join(dirname, filename)
         with open(filename_out, 'w') as f:
             f.writelines(new_lines)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print(filename_out, 'not found')
-        import pdb; pdb.set_trace()
+        if call_pdb:
+            pdb.set_trace()
+        raise ValueError
 
