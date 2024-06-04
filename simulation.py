@@ -63,7 +63,7 @@ class ElegantSimulation:
         self.cen = self._get_FileViewer('%s.cen' % self.rootname)
         self.mag = self._get_FileViewer('%s.mag' % self.rootname)
 
-        watch_files = list(glob.glob(self.directory+'/%s[-_]*.w1' % self.rootname))
+        watch_files = list(glob.glob(self.directory+'/%s.*.w1' % self.rootname))
         if add_watch:
             watch_files.extend(add_watch)
 
