@@ -25,7 +25,7 @@ def plot(sim, watchplot='long'):
     sp_blen = subplot(sp_ctr, title='Bunch duration', xlabel='$s$ (m)', ylabel='sig s7 (fs)')
     sp_ctr += 1
     sp_r56 = sp_blen.twinx()
-    sp_r56.set_ylabel('R56 (m)')
+    sp_r56.set_ylabel('R56 (mm)')
 
     for dim in ['x', 'y']:
         color = sp_beta.plot(sim.twi['s'], sim.twi['beta'+dim], label=dim)[0].get_color()
@@ -38,7 +38,10 @@ def plot(sim, watchplot='long'):
     sp_ene.plot(sim.cen['s'], sim.cen['pCentral']/1e6*m_e_eV, label='cen')
     sp_ene.legend()
 
-    sp_blen.semilogy(sim.sig['s'], sim.sig['s7']*1e15)
+    sp_blen.semilogy(sim.sig['s'], sim.sig['s7']*1e15, label='s7')
+    if sim.mat:
+        sp_r56.plot(sim.mat['s'], sim.mat['R56']*1e3, color='tab:orange', label='mat')
+    ms.comb_legend(sp_blen, sp_r56)
 
     n_watch_plots = 10 - sp_ctr
 
@@ -73,7 +76,4 @@ def plot(sim, watchplot='long'):
         extent = [x_axis[0]*xfactor, x_axis[-1]*xfactor, y_axis[0]*yfactor, y_axis[-1]*yfactor]
         sp_w.imshow(hist, aspect='auto', extent=extent, origin='lower', cmap=plt.get_cmap('hot'))
 
-
-    if sim.mat:
-        sp_r56.plot(sim.mat['s'], sim.mat['R56'])
 

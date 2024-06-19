@@ -1,6 +1,7 @@
 import shutil
 import os
 import glob
+import itertools
 
 import numpy as np
 
@@ -193,4 +194,12 @@ class ElegantSimulation:
                 'length': length,
                 'k1l': k1*length,
                 }
+
+    def get_matrices(self):
+        if not self.mat:
+            raise ValueError('No mat file')
+        all_mat = np.zeros([len(self.mat['s']), 6, 6], float)
+        for index, n1, n2 in itertools.product(range(all_mat.shape[0]), range(6), range(6)):
+            all_mat[index, n1, n2] = self.mat['R%i%i' % (n1+1,n2+1)][index]
+        return all_mat
 
