@@ -475,8 +475,6 @@ class Watcher(FileViewer):
                 fid.write('  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e  %12.6e\n' % (t, x, y, xp, yp, p))
 
 
-
-
 class Watcher2(Watcher):
     """
     Pseudo Watcher that returns values from a dictionary but otherweise behaves like a Watcher.

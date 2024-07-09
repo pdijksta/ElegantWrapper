@@ -38,7 +38,8 @@ def plot(sim, watchplot='long'):
     sp_ene.plot(sim.cen['s'], sim.cen['pCentral']/1e6*m_e_eV, label='cen')
     sp_ene.legend()
 
-    sp_blen.semilogy(sim.sig['s'], sim.sig['s7']*1e15, label='s7')
+    if np.any(sim.sig['s7'] > 0):
+        sp_blen.semilogy(sim.sig['s'], sim.sig['s7']*1e15, label='s7')
     if sim.mat:
         sp_r56.plot(sim.mat['s'], sim.mat['R56']*1e3, color='tab:orange', label='mat')
     ms.comb_legend(sp_blen, sp_r56)
