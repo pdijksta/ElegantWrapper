@@ -423,6 +423,7 @@ class Watcher(FileViewer):
         masks = []
 
         if method == 'const_delta':
+            size = 0
             xx_min, xx_max = np.min(xx), np.max(xx)
             delta = (xx_max-xx_min)/n_bins
             for n_bin in range(n_bins):
@@ -438,6 +439,8 @@ class Watcher(FileViewer):
                 new_slice = Watcher2(parameters_dict, columns_dict, s=self.s)
                 slices.append(new_slice)
                 new_slice.delta = delta
+                size += this_mask.sum()
+            assert size == xx.size
         elif method == 'const_size':
             slices = []
             n_slice = len(xx)//n_bins
