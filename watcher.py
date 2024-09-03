@@ -376,6 +376,17 @@ class Watcher(FileViewer):
         arr = self[dimension]-np.mean(self[dimension])
         return np.sqrt(np.mean(arr**2))
 
+    def get_uncorrelated_beamsize(self, dimension, correlated_dimension, degree):
+        assert dimension in ('x', 'y', 'xp', 'yp', 't', 'p')
+        assert correlated_dimension in ('x', 'y', 'xp', 'yp', 't', 'p')
+        arr = self[dimension]
+        if len(arr) < degree+5:
+            return self.get_beamsize(dimension)
+        arr_correlated = self[correlated_dimension]
+        fit = np.poly1d(np.polyfit(arr_correlated, arr, degree))
+        residual = arr - fit(arr_correlated)
+        return np.std(residual)
+
     def get_mean(self, dimension):
         assert dimension in ('x', 'y', 'xp', 'yp', 't', 'p')
         return np.mean(self[dimension])
@@ -399,7 +410,7 @@ class Watcher(FileViewer):
 
         return popt[-1]
 
-    def slice_beam(self, n_bins, axis='z', method='const_delta'):
+    def slice_beam(self, n_bins, axis='z', method='const_delta', return_masks=False):
         """
         Method may be const_delta or const_size
         """
@@ -408,24 +419,25 @@ class Watcher(FileViewer):
         else:
             xx = self[axis]
         xx = xx - xx.mean()
+        slices = []
+        masks = []
 
         if method == 'const_delta':
-            slices = []
             xx_min, xx_max = np.min(xx), np.max(xx)
             delta = (xx_max-xx_min)/n_bins
             for n_bin in range(n_bins):
+                if n_bin == 0:
+                    this_mask = xx_min+(n_bin+1)*delta >= xx
                 if n_bin == n_bins-1:
-                    this_mask = np.logical_and(xx_min+n_bin*delta <= xx, xx_min+(n_bin+1)*delta >= xx)
+                    this_mask = xx_min+n_bin*delta <= xx
                 else:
                     this_mask = np.logical_and(xx_min+n_bin*delta <= xx, xx_min+(n_bin+1)*delta > xx)
+                masks.append(this_mask)
                 columns_dict = {column: self[column][this_mask] for column in self.columns}
                 parameters_dict = {parameter: self[parameter] for parameter in self.parameters}
                 new_slice = Watcher2(parameters_dict, columns_dict, s=self.s)
                 slices.append(new_slice)
                 new_slice.delta = delta
-
-            return slices
-
         elif method == 'const_size':
             slices = []
             n_slice = len(xx)//n_bins
@@ -433,6 +445,7 @@ class Watcher(FileViewer):
             sort_arr = np.array(list(zip(xx, np.arange(len(xx)))), dtype=[('value', float), ('counter', int)])
             sorted_arr = np.sort(sort_arr, order='value')
             indices = sorted_arr['counter']
+            mask0 = np.arange(len(xx), int)
 
             for n_bin in range(n_bins):
                 this_indices = indices[n_bin*n_slice:(n_bin+1)*n_slice]
@@ -440,7 +453,13 @@ class Watcher(FileViewer):
                 parameters_dict = {parameter: self[parameter] for parameter in self.parameters}
                 new_slice = Watcher2(parameters_dict, columns_dict, s=self.s)
                 slices.append(new_slice)
+                masks.append(np.take(mask0, this_indices))
+        else:
+            raise ValueError(method)
 
+        if return_masks:
+            return slices, masks
+        else:
             return slices
 
     def toGenesis(self, n_slices, filename=None):
