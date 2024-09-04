@@ -429,7 +429,7 @@ class Watcher(FileViewer):
             for n_bin in range(n_bins):
                 if n_bin == 0:
                     this_mask = xx_min+(n_bin+1)*delta > xx
-                if n_bin == n_bins-1:
+                elif n_bin == n_bins-1:
                     this_mask = xx_min+n_bin*delta <= xx
                 else:
                     this_mask = np.logical_and(xx_min+n_bin*delta <= xx, xx_min+(n_bin+1)*delta > xx)
@@ -459,6 +459,9 @@ class Watcher(FileViewer):
                 masks.append(np.take(mask0, this_indices))
         else:
             raise ValueError(method)
+
+        total_mask = np.sum(masks, axis=0)
+        assert np.all(total_mask == 1)
 
         if return_masks:
             return slices, masks
