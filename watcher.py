@@ -428,7 +428,7 @@ class Watcher(FileViewer):
             delta = (xx_max-xx_min)/n_bins
             for n_bin in range(n_bins):
                 if n_bin == 0:
-                    this_mask = xx_min+(n_bin+1)*delta >= xx
+                    this_mask = xx_min+(n_bin+1)*delta > xx
                 if n_bin == n_bins-1:
                     this_mask = xx_min+n_bin*delta <= xx
                 else:
