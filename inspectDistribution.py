@@ -13,7 +13,7 @@ except ImportError:
     from . import watcher
     from . import myplotstyle as ms
 
-def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True, fig_kwargs={}):
+def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True, fig_kwargs={}, hspace=0.35, wspace=0.25, bottom=0.1):
     dimensions = 'x', 'xp', 'y', 'yp', 't', 'p'
     units = '$\mu$m', '$\mu$rad', '$\mu$m', '$\mu$rad', 'fs', 'GeV/c'
     factors = 1e6, 1e6, 1e6, 1e6, 1e15, m_e_eV/1e9
@@ -21,7 +21,7 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     if title is None:
         title = str(watch)
     fig = ms.figure(title, **fig_kwargs)
-    plt.subplots_adjust(hspace=0.35, wspace=0.25, bottom=0.1)
+    plt.subplots_adjust(hspace=hspace, wspace=wspace, bottom=bottom)
     subplot = ms.subplot_factory(4,5,False)
     sp_ctr = 1
 
