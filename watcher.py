@@ -294,7 +294,11 @@ class Watcher(FileViewer):
     def get_emittance_from_points(x, xp):
         x = x - np.mean(x)
         xp = xp - np.mean(xp)
-        return np.sqrt(np.mean(x**2)*np.mean(xp**2) - np.mean(x*xp)**2)
+        emit_sq = np.mean(x**2)*np.mean(xp**2) - np.mean(x*xp)**2
+        if emit_sq < 0:
+            return 0
+        else:
+            return np.sqrt(emit_sq)
 
     def get_emittance_from_beam(self, dimension, normalized=False):
         assert dimension in ('x', 'y')
@@ -310,8 +314,11 @@ class Watcher(FileViewer):
     def get_beta_from_beam(self, dimension):
         assert dimension in ('x', 'y')
         e = self.get_emittance_from_beam(dimension)
-        beamsize_squared = self.get_beamsize(dimension)**2
-        return beamsize_squared/e
+        if e == 0:
+            return 0
+        else:
+            beamsize_squared = self.get_beamsize(dimension)**2
+            return beamsize_squared/e
 
     def get_gamma_from_beam(self, dimension):
         assert dimension in ('x', 'y')
@@ -536,7 +543,7 @@ class SliceCollection:
         self.slices = slices
         self.n_slices = len(slices)
         self.parent = parent
-
+        self.n_total = np.sum([len(s['x']) for s in self.slices])
         s_list = []
 
         mean_t = parent['t'].mean()
@@ -545,6 +552,10 @@ class SliceCollection:
             s_list.append(-(np.mean(s['t'])-mean_t)*c)
 
         self.s_arr = np.array(s_list)
+
+    def intensity_cutoff(self, cutoff):
+        new_slices = [s for s in self.slices if len(s['x']) > cutoff]
+        self.__init__(new_slices, self.parent)
 
     def get_mismatch(self, dimension, reference):
         if reference == 'proj':
