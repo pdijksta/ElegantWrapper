@@ -45,3 +45,23 @@ def copy_and_replace_file(dirname, filename, replace, call_pdb=False):
             pdb.set_trace()
         raise ValueError
 
+def split_runfile(file_template, bash_lines, n_files):
+    run_of_runs = []
+    outputs = []
+    for n_file in range(n_files):
+        outputs.append([])
+    for ctr, line in enumerate(bash_lines):
+        n_file = ctr % n_files
+        outputs[n_file].append(line)
+    for n_file in range(n_files):
+        filename = file_template % (n_file+1)
+        with open(filename, 'w') as f:
+            f.writelines(outputs[n_file])
+            print('Wrote %s' % filename)
+        run_of_runs.append('bash %s &' % filename)
+
+    filename = file_template % 0
+    with open(filename, 'w') as f:
+        f.writelines(run_of_runs)
+        print('Wrote %s' % filename)
+

@@ -8,7 +8,7 @@ import PassiveWFMeasurement.myplotstyle as ms
 
 m_e_eV = m_e*c**2/e
 
-def plot(sim, watchplot='long'):
+def plot(sim, watchplot='long', void_cut=(2e-3, 2e-3)):
     fig = ms.figure(sim.filename)
     fig.subplots_adjust(hspace=0.35, wspace=0.35)
     subplot = ms.subplot_factory(3, 3, True)
@@ -76,18 +76,33 @@ def plot(sim, watchplot='long'):
         sp_w = subplot(sp_ctr, title=os.path.basename(w.filename), xlabel=xlabel, ylabel=ylabel, grid=False)
         sp_ctr += 1
 
-        xx = (w[xdim] - w[xdim].mean())*xfactor
-        yy = (w[ydim] - w[xdim].mean())*yfactor
+        xx0, yy0 = w[xdim], w[ydim]
+        hist, xedges, yedges = np.histogram2d(xx0, yy0, bins=(100, 100))
+        x_axis = xedges[:-1] + xedges[1] - xedges[0]
+        y_axis= yedges[:-1] + yedges[1] - yedges[0]
+        img0 = image_analysis.Image(hist.T, x_axis, y_axis)
+        img0 = img0.cut_voids(*void_cut)
+
+        mask_x = np.logical_and(xx0 > img0.x_axis.min(), xx0 < img0.x_axis.max())
+        mask_y = np.logical_and(yy0 > img0.y_axis.min(), yy0 < img0.y_axis.max())
+        mask = np.logical_and(mask_x, mask_y)
+
+        xx1 = xx0[mask]
+        yy1 = yy0[mask]
+        xx = (xx1 - xx1.mean())*xfactor
+        yy = (yy1 - yy1.mean())*yfactor
         hist, xedges, yedges = np.histogram2d(xx, yy, bins=(100, 100))
         x_axis = xedges[:-1] + xedges[1] - xedges[0]
         y_axis= yedges[:-1] + yedges[1] - yedges[0]
         img = image_analysis.Image(hist.T, x_axis, y_axis, charge=w['Charge'], energy_eV=w['p'].mean()*m_e_eV, x_unit=x_unit, y_unit=y_unit)
+        img = img.cut_voids(*void_cut)
+
         img.plot_img_and_proj(sp_w, plot_gauss=False)
 
         textbbox = {'boxstyle': 'square', 'alpha': 0.75, 'facecolor': 'white', 'edgecolor': 'gray'}
         x_factor = image_analysis.unit_to_factor(img.x_unit)
         y_factor = image_analysis.unit_to_factor(img.y_unit)
-        textstr = 'rms %s: %.2f %s; %s: %.2f %s' % (xdim, xx.std()*x_factor, x_unit2, ydim, yy.std()*y_factor, y_unit2)
+        textstr = '%s: %.2f %s; %s: %.2f %s (rms)' % (xdim, xx.std()*x_factor, x_unit2, ydim, yy.std()*y_factor, y_unit2)
         sp_w.text(0.95, 0.05, textstr, transform=sp_w.transAxes, verticalalignment='bottom', horizontalalignment='right', bbox=textbbox)
 
 
