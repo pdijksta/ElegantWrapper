@@ -1,8 +1,9 @@
 import os
 import numpy as np
 from scipy.constants import m_e, e, c
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
+from PassiveWFMeasurement import image_analysis
 import PassiveWFMeasurement.myplotstyle as ms
 
 m_e_eV = m_e*c**2/e
@@ -51,15 +52,21 @@ def plot(sim, watchplot='long'):
         ylabel = '$\Delta E$ (MeV)'
         xdim = 't'
         ydim = 'p'
-        xfactor = 1e15
-        yfactor = m_e_eV/1e6
+        xfactor = 1
+        yfactor = m_e_eV
+        x_unit = 's'
+        x_unit2 = 'fs'
+        y_unit = 'eV'
+        y_unit2 = 'MeV'
     elif watchplot == 'trans':
         xlabel = '$x$ (mm)'
         ylabel = '$y$ (mm)'
         xdim = 'x'
         ydim = 'y'
-        xfactor = 1e-3
-        yfactor = 1e-3
+        xfactor = 1
+        yfactor = 1
+        x_unit = y_unit = 'm'
+        x_unit2 = y_unit2 = 'mm'
     else:
         raise ValueError(watchplot)
 
@@ -69,12 +76,22 @@ def plot(sim, watchplot='long'):
         sp_w = subplot(sp_ctr, title=os.path.basename(w.filename), xlabel=xlabel, ylabel=ylabel, grid=False)
         sp_ctr += 1
 
-        xx = w[xdim] - w[xdim].mean()
-        yy = w[ydim] - w[xdim].mean()
+        xx = (w[xdim] - w[xdim].mean())*xfactor
+        yy = (w[ydim] - w[xdim].mean())*yfactor
         hist, xedges, yedges = np.histogram2d(xx, yy, bins=(100, 100))
         x_axis = xedges[:-1] + xedges[1] - xedges[0]
         y_axis= yedges[:-1] + yedges[1] - yedges[0]
-        extent = [x_axis[0]*xfactor, x_axis[-1]*xfactor, y_axis[0]*yfactor, y_axis[-1]*yfactor]
-        sp_w.imshow(hist, aspect='auto', extent=extent, origin='lower', cmap=plt.get_cmap('hot'))
+        img = image_analysis.Image(hist.T, x_axis, y_axis, charge=w['Charge'], energy_eV=w['p'].mean()*m_e_eV, x_unit=x_unit, y_unit=y_unit)
+        img.plot_img_and_proj(sp_w, plot_gauss=False)
+
+        textbbox = {'boxstyle': 'square', 'alpha': 0.75, 'facecolor': 'white', 'edgecolor': 'gray'}
+        x_factor = image_analysis.unit_to_factor(img.x_unit)
+        y_factor = image_analysis.unit_to_factor(img.y_unit)
+        textstr = 'rms %s: %.2f %s; %s: %.2f %s' % (xdim, xx.std()*x_factor, x_unit2, ydim, yy.std()*y_factor, y_unit2)
+        sp_w.text(0.95, 0.05, textstr, transform=sp_w.transAxes, verticalalignment='bottom', horizontalalignment='right', bbox=textbbox)
+
+
+        #extent = [x_axis[0]*xfactor, x_axis[-1]*xfactor, y_axis[0]*yfactor, y_axis[-1]*yfactor]
+        #sp_w.imshow(hist, aspect='auto', extent=extent, origin='lower', cmap=plt.get_cmap('hot'))
 
 
