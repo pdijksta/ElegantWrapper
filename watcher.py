@@ -448,6 +448,8 @@ class Watcher(FileViewer):
                 new_slice.delta = delta
                 size += this_mask.sum()
             assert size == xx.size
+            total_mask = np.sum(masks, axis=0)
+            assert np.all(total_mask == 1)
         elif method == 'const_size':
             slices = []
             n_slice = len(xx)//n_bins
@@ -455,7 +457,6 @@ class Watcher(FileViewer):
             sort_arr = np.array(list(zip(xx, np.arange(len(xx)))), dtype=[('value', float), ('counter', int)])
             sorted_arr = np.sort(sort_arr, order='value')
             indices = sorted_arr['counter']
-            mask0 = np.arange(len(xx), int)
 
             for n_bin in range(n_bins):
                 this_indices = indices[n_bin*n_slice:(n_bin+1)*n_slice]
@@ -463,12 +464,11 @@ class Watcher(FileViewer):
                 parameters_dict = {parameter: self[parameter] for parameter in self.parameters}
                 new_slice = Watcher2(parameters_dict, columns_dict, s=self.s)
                 slices.append(new_slice)
-                masks.append(np.take(mask0, this_indices))
+                mask = np.zeros_like(xx, bool)
+                mask[this_indices] = 1
+                masks.append(mask)
         else:
             raise ValueError(method)
-
-        total_mask = np.sum(masks, axis=0)
-        assert np.all(total_mask == 1)
 
         if return_masks:
             return slices, masks
