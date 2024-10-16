@@ -489,6 +489,17 @@ class Watcher(FileViewer):
         sdds2hdf(new_name, new_name_h5)
         return FileViewer(new_name_h5)
 
+    def to_beam_profile(self, n_bins):
+        from PassiveWFMeasurement import beam_profile
+        slices = SliceCollection(self.slice_beam(n_bins, 't', 'const_size'), self)
+        tt = slices.get_slice_func('get_mean', 't') - self['t'].mean()
+        delta_t = np.array([x['t'].max() - x['t'].min() for x in slices.slices])
+        ii = np.array([len(x['t']) for x in slices.slices]) * self['Charge'] / len(self['t']) / delta_t
+        tt2 = np.linspace(tt.min(), tt.max(), n_bins*10)
+        ii2 = np.interp(tt2, tt, ii)
+        bp = beam_profile.BeamProfile(tt2, ii2, 1, self['Charge'])
+        return bp
+
     def toSDDS(self, filename):
         with open(filename, 'w') as fid:
             fid.write('SDDS1\n')
