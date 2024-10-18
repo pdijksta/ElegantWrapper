@@ -45,7 +45,20 @@ def copy_and_replace_file(dirname, filename, replace, call_pdb=False):
             pdb.set_trace()
         raise ValueError
 
+bash_lines0 = [
+        '#!/bin/bash\n',
+        'set -e # Halt on error of any command\n\n'
+]
+
+def write_runfile(filename, bash_lines):
+    with open(filename, 'w') as f:
+        f.writelines(bash_lines0+bash_lines)
+        print('Wrote %s' % filename)
+
+
 def split_runfile(file_template, bash_lines, n_files):
+    if n_files == 1:
+        return write_runfile(file_template % 0, bash_lines)
     run_of_runs = []
     outputs = []
     for n_file in range(n_files):
@@ -55,13 +68,8 @@ def split_runfile(file_template, bash_lines, n_files):
         outputs[n_file].append(line)
     for n_file in range(n_files):
         filename = file_template % (n_file+1)
-        with open(filename, 'w') as f:
-            f.writelines(outputs[n_file])
-            print('Wrote %s' % filename)
-        run_of_runs.append('bash %s &' % filename)
-
+        write_runfile(filename, outputs[n_file])
+        run_of_runs.append('bash %s &\n' % filename)
     filename = file_template % 0
-    with open(filename, 'w') as f:
-        f.writelines(run_of_runs)
-        print('Wrote %s' % filename)
+    write_runfile(filename, run_of_runs)
 
