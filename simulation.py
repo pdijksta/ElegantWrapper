@@ -136,6 +136,9 @@ class ElegantSimulation:
             output.append(func(*args, **kwargs))
         return np.array(output)
 
+    def get_twi_index_from_watcher(self, watcher):
+        return np.argmin((self.twi['s']-watcher.s)**2).squeeze()
+
     def get_geometric_emittance(self, dimension):
         assert dimension in ('x', 'y')
         get_entry = lambda x: self.sig['columns/'+x]
