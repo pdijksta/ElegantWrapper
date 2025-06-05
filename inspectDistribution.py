@@ -90,7 +90,7 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     espread = pspread*m_e_eV
     sp.plot(tt*1e15, espread/1e6)
 
-    sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='Chirp (MeV/fs)')
+    sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='Chirp (MeV/fs)', sciy=True)
     sp_ctr += 1
     sp_curr = sp.twinx()
     #sp_curr.set_ylabel('I (kA)')
