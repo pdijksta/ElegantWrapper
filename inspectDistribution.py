@@ -21,6 +21,7 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     if title is None:
         title = str(watch)
     fig = ms.figure(title, **fig_kwargs)
+    fig.set_tight_layout(True)
     plt.subplots_adjust(hspace=hspace, wspace=wspace, bottom=bottom)
     subplot = ms.subplot_factory(4,5,False)
     sp_ctr = 1
@@ -51,15 +52,16 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     sp = subplot(sp_ctr, title='Norm. emittance', xlabel='t (fs)', ylabel='$\epsilon_n$ (nm)')
     sp_ctr += 1
     sp_curr = sp.twinx()
-    sp_curr.set_ylabel('I (kA)')
+    #sp_curr.set_ylabel('I (kA)')
     sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+    sp_curr.set_yticks([])
 
     sp_beta = subplot(sp_ctr, title='Slice optics', xlabel='t (fs)', ylabel=r'$\beta$ (m)')
     sp_ctr += 1
     sp_alpha = sp_beta.twinx()
     sp_alpha.set_ylabel(r'$\alpha$')
 
-    slices = watcher.SliceCollection(watch.slice_beam(bins[0]), watch)
+    slices = watcher.SliceCollection(watch.slice_beam(bins[0], method='const_size'), watch)
     tt = np.array([s['t'].mean() for s in slices.slices])
     for dim in ('x', 'y'):
         em = slices.get_slice_func('get_emittance_from_beam', dim, True)
@@ -80,8 +82,9 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     sp = subplot(sp_ctr, title='Energy spread', xlabel='t (fs)', ylabel='$\sigma_E$ (MeV)')
     sp_ctr += 1
     sp_curr = sp.twinx()
-    sp_curr.set_ylabel('I (kA)')
+    #sp_curr.set_ylabel('I (kA)')
     sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+    sp_curr.set_yticks([])
 
     pspread = slices.get_slice_func('get_beamsize', 'p')
     espread = pspread*m_e_eV
@@ -90,8 +93,9 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
     sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='Chirp (MeV/fs)')
     sp_ctr += 1
     sp_curr = sp.twinx()
-    sp_curr.set_ylabel('I (kA)')
+    #sp_curr.set_ylabel('I (kA)')
     sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+    sp_curr.set_yticks([])
 
 
     pmean = slices.get_slice_func('get_mean', 'p')
