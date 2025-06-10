@@ -13,8 +13,7 @@ except ImportError:
     from . import watcher
     from . import myplotstyle as ms
 
-def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True, fig_kwargs={}, hspace=0.35, wspace=0.25, bottom=0.1):
-    dimensions = 'x', 'xp', 'y', 'yp', 't', 'p'
+def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center_time=True, fig_kwargs={}, hspace=0.35, wspace=0.25, bottom=0.1, dimensions=['x', 'xp', 'y', 'yp', 't', 'p']):
     units = '$\mu$m', '$\mu$rad', '$\mu$m', '$\mu$rad', 'fs', 'GeV/c'
     factors = 1e6, 1e6, 1e6, 1e6, 1e15, m_e_eV/1e9
 
@@ -44,65 +43,67 @@ def inspect(watch, bins=(100,100), show=True, title=None, charge=200e-12, center
                     y_arr = y_arr - y_arr.mean()
             sp.hist2d(x_arr*xfactor, y_arr*yfactor, bins=bins)
 
-    sp = subplot(sp_ctr, title='Beam current', xlabel='t (fs)', ylabel='I (kA)')
-    sp_ctr += 1
-    curr_time, curr = watch.get_current('t', bins=bins[0], charge=charge, center_time=center_time)
-    sp.step(curr_time*1e15, curr/1e3)
+    if 't' in dimensions:
 
-    sp = subplot(sp_ctr, title='Norm. emittance', xlabel='t (fs)', ylabel='$\epsilon_n$ (nm)')
-    sp_ctr += 1
-    sp_curr = sp.twinx()
-    #sp_curr.set_ylabel('I (kA)')
-    sp_curr.step(curr_time*1e15, curr/1e3, color='black')
-    sp_curr.set_yticks([])
+        sp = subplot(sp_ctr, title='Beam current', xlabel='t (fs)', ylabel='I (kA)')
+        sp_ctr += 1
+        curr_time, curr = watch.get_current('t', bins=bins[0], charge=charge, center_time=center_time)
+        sp.step(curr_time*1e15, curr/1e3)
 
-    sp_beta = subplot(sp_ctr, title='Slice optics', xlabel='t (fs)', ylabel=r'$\beta$ (m)')
-    sp_ctr += 1
-    sp_alpha = sp_beta.twinx()
-    sp_alpha.set_ylabel(r'$\alpha$')
+        sp = subplot(sp_ctr, title='Norm. emittance', xlabel='t (fs)', ylabel='$\epsilon_n$ (nm)')
+        sp_ctr += 1
+        sp_curr = sp.twinx()
+        #sp_curr.set_ylabel('I (kA)')
+        sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+        sp_curr.set_yticks([])
 
-    slices = watcher.SliceCollection(watch.slice_beam(bins[0], method='const_size'), watch)
-    tt = np.array([s['t'].mean() for s in slices.slices])
-    for dim in ('x', 'y'):
-        em = slices.get_slice_func('get_emittance_from_beam', dim, True)
-        beta = slices.get_slice_func('get_beta_from_beam', dim)
-        alpha = slices.get_slice_func('get_alpha_from_beam', dim)
-        sp.plot(tt*1e15, em*1e9, label=dim)
-        color = sp_beta.plot(tt*1e15, beta, label=dim)[0].get_color()
-        sp_alpha.plot(tt*1e15, alpha, ls='--', color=color)
+        sp_beta = subplot(sp_ctr, title='Slice optics', xlabel='t (fs)', ylabel=r'$\beta$ (m)')
+        sp_ctr += 1
+        sp_alpha = sp_beta.twinx()
+        sp_alpha.set_ylabel(r'$\alpha$')
 
-        beta = watch.get_beta_from_beam(dim)
-        alpha = watch.get_alpha_from_beam(dim)
-        color = {'x': 'black', 'y': 'gray'}[dim]
-        sp_beta.axhline(beta, color=color, ls='solid')
-        sp_alpha.axhline(alpha, color=color, ls='dotted')
-    sp.legend()
-    sp_beta.legend()
+        slices = watcher.SliceCollection(watch.slice_beam(bins[0], method='const_size'), watch)
+        tt = np.array([s['t'].mean() for s in slices.slices])
+        for dim in ('x', 'y'):
+            em = slices.get_slice_func('get_emittance_from_beam', dim, True)
+            beta = slices.get_slice_func('get_beta_from_beam', dim)
+            alpha = slices.get_slice_func('get_alpha_from_beam', dim)
+            sp.plot(tt*1e15, em*1e9, label=dim)
+            color = sp_beta.plot(tt*1e15, beta, label=dim)[0].get_color()
+            sp_alpha.plot(tt*1e15, alpha, ls='--', color=color)
 
-    sp = subplot(sp_ctr, title='Energy spread', xlabel='t (fs)', ylabel='$\sigma_E$ (MeV)')
-    sp_ctr += 1
-    sp_curr = sp.twinx()
-    #sp_curr.set_ylabel('I (kA)')
-    sp_curr.step(curr_time*1e15, curr/1e3, color='black')
-    sp_curr.set_yticks([])
+            beta = watch.get_beta_from_beam(dim)
+            alpha = watch.get_alpha_from_beam(dim)
+            color = {'x': 'black', 'y': 'gray'}[dim]
+            sp_beta.axhline(beta, color=color, ls='solid')
+            sp_alpha.axhline(alpha, color=color, ls='dotted')
+        sp.legend()
+        sp_beta.legend()
 
-    pspread = slices.get_slice_func('get_beamsize', 'p')
-    espread = pspread*m_e_eV
-    sp.plot(tt*1e15, espread/1e6)
+        sp = subplot(sp_ctr, title='Energy spread', xlabel='t (fs)', ylabel='$\sigma_E$ (MeV)')
+        sp_ctr += 1
+        sp_curr = sp.twinx()
+        #sp_curr.set_ylabel('I (kA)')
+        sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+        sp_curr.set_yticks([])
 
-    sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='Chirp (MeV/fs)', sciy=True)
-    sp_ctr += 1
-    sp_curr = sp.twinx()
-    #sp_curr.set_ylabel('I (kA)')
-    sp_curr.step(curr_time*1e15, curr/1e3, color='black')
-    sp_curr.set_yticks([])
+        pspread = slices.get_slice_func('get_beamsize', 'p')
+        espread = pspread*m_e_eV
+        sp.plot(tt*1e15, espread/1e6)
+
+        sp = subplot(sp_ctr, title='Energy chirp', xlabel='t (fs)', ylabel='Chirp (MeV/fs)', sciy=True)
+        sp_ctr += 1
+        sp_curr = sp.twinx()
+        #sp_curr.set_ylabel('I (kA)')
+        sp_curr.step(curr_time*1e15, curr/1e3, color='black')
+        sp_curr.set_yticks([])
 
 
-    pmean = slices.get_slice_func('get_mean', 'p')
-    emean = pmean*m_e_eV
-    chirp = np.diff(emean)/np.diff(tt)
-    tt_plot = tt[:-1] + (tt[1] - tt[0])/2
-    sp.plot(tt_plot*1e15, chirp/1e6/1e15)
+        pmean = slices.get_slice_func('get_mean', 'p')
+        emean = pmean*m_e_eV
+        chirp = np.diff(emean)/np.diff(tt)
+        tt_plot = tt[:-1] + (tt[1] - tt[0])/2
+        sp.plot(tt_plot*1e15, chirp/1e6/1e15)
 
     if show:
         plt.show()
