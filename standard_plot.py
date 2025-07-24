@@ -105,8 +105,8 @@ def plot(sim, watchplot='long', void_cut=(2e-3, 2e-3)):
         textstr = '%s: %.2f %s; %s: %.2f %s (rms)' % (xdim, xx.std()*x_factor, x_unit2, ydim, yy.std()*y_factor, y_unit2)
         sp_w.text(0.95, 0.05, textstr, transform=sp_w.transAxes, verticalalignment='bottom', horizontalalignment='right', bbox=textbbox)
 
-
         #extent = [x_axis[0]*xfactor, x_axis[-1]*xfactor, y_axis[0]*yfactor, y_axis[-1]*yfactor]
         #sp_w.imshow(hist, aspect='auto', extent=extent, origin='lower', cmap=plt.get_cmap('hot'))
 
+    return fig
 

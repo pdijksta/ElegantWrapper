@@ -55,7 +55,6 @@ def write_runfile(filename, bash_lines):
         f.writelines(bash_lines0+bash_lines)
         print('Wrote %s' % filename)
 
-
 def split_runfile(file_template, bash_lines, n_files):
     if n_files == 1:
         return write_runfile(file_template % 0, bash_lines)
