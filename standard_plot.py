@@ -73,7 +73,7 @@ def plot(sim, watchplot='long', void_cut=(2e-3, 2e-3)):
     for w in sim.watch[:n_watch_plots]:
         if len(w['x']) == 1:
             continue
-        sp_w = subplot(sp_ctr, title=os.path.basename(w.filename), xlabel=xlabel, ylabel=ylabel, grid=False)
+        sp_w = subplot(sp_ctr, title='%s at %.1f m' % (os.path.basename(w.filename), w.s), xlabel=xlabel, ylabel=ylabel, grid=False)
         sp_ctr += 1
 
         xx0, yy0 = w[xdim], w[ydim]
