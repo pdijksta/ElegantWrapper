@@ -76,37 +76,40 @@ def plot(sim, watchplot='long', void_cut=(2e-3, 2e-3)):
         sp_w = subplot(sp_ctr, title='%s at %.1f m' % (os.path.basename(w.filename), w.s), xlabel=xlabel, ylabel=ylabel, grid=False)
         sp_ctr += 1
 
-        xx0, yy0 = w[xdim], w[ydim]
-        hist, xedges, yedges = np.histogram2d(xx0, yy0, bins=(100, 100))
-        x_axis = xedges[:-1] + xedges[1] - xedges[0]
-        y_axis= yedges[:-1] + yedges[1] - yedges[0]
-        img0 = image_analysis.Image(hist.T, x_axis, y_axis)
-        img0 = img0.cut_voids(*void_cut)
-
-        mask_x = np.logical_and(xx0 > img0.x_axis.min(), xx0 < img0.x_axis.max())
-        mask_y = np.logical_and(yy0 > img0.y_axis.min(), yy0 < img0.y_axis.max())
-        mask = np.logical_and(mask_x, mask_y)
-
-        xx1 = xx0[mask]
-        yy1 = yy0[mask]
-        xx = (xx1 - xx1.mean())*xfactor
-        yy = (yy1 - yy1.mean())*yfactor
-        hist, xedges, yedges = np.histogram2d(xx, yy, bins=(100, 100))
-        x_axis = xedges[:-1] + xedges[1] - xedges[0]
-        y_axis= yedges[:-1] + yedges[1] - yedges[0]
-        img = image_analysis.Image(hist.T, x_axis, y_axis, charge=w['Charge'], energy_eV=w['p'].mean()*m_e_eV, x_unit=x_unit, y_unit=y_unit)
-        img = img.cut_voids(*void_cut)
-
+        img = w_to_img(w, void_cut=void_cut, xdim=xdim, ydim=ydim, xfactor=xfactor, yfactor=yfactor, x_unit=x_unit, y_unit=y_unit)
         img.plot_img_and_proj(sp_w, plot_gauss=False)
 
         textbbox = {'boxstyle': 'square', 'alpha': 0.75, 'facecolor': 'white', 'edgecolor': 'gray'}
         x_factor = image_analysis.unit_to_factor(img.x_unit)
         y_factor = image_analysis.unit_to_factor(img.y_unit)
-        textstr = '%s: %.2f %s; %s: %.2f %s (rms)' % (xdim, xx.std()*x_factor, x_unit2, ydim, yy.std()*y_factor, y_unit2)
+        textstr = '%s: %.2f %s; %s: %.2f %s (rms)' % (xdim, w[xdim].std()*x_factor, x_unit2, ydim, w[ydim].std()*y_factor, y_unit2)
         sp_w.text(0.95, 0.05, textstr, transform=sp_w.transAxes, verticalalignment='bottom', horizontalalignment='right', bbox=textbbox)
 
         #extent = [x_axis[0]*xfactor, x_axis[-1]*xfactor, y_axis[0]*yfactor, y_axis[-1]*yfactor]
         #sp_w.imshow(hist, aspect='auto', extent=extent, origin='lower', cmap=plt.get_cmap('hot'))
 
     return fig
+
+def w_to_img(w, void_cut=(2e-3, 2e-3), xdim='t', ydim='p', xfactor=1, yfactor=m_e_eV, x_unit='s', y_unit='eV', bins=(100,100)):
+    xx0, yy0 = w[xdim], w[ydim]
+    hist, xedges, yedges = np.histogram2d(xx0, yy0, bins=bins)
+    x_axis = xedges[:-1] + xedges[1] - xedges[0]
+    y_axis= yedges[:-1] + yedges[1] - yedges[0]
+    img0 = image_analysis.Image(hist.T, x_axis, y_axis)
+    img0 = img0.cut_voids(*void_cut)
+
+    mask_x = np.logical_and(xx0 > img0.x_axis.min(), xx0 < img0.x_axis.max())
+    mask_y = np.logical_and(yy0 > img0.y_axis.min(), yy0 < img0.y_axis.max())
+    mask = np.logical_and(mask_x, mask_y)
+
+    xx1 = xx0[mask]
+    yy1 = yy0[mask]
+    xx = (xx1 - xx1.mean())*xfactor
+    yy = (yy1 - yy1.mean())*yfactor
+    hist, xedges, yedges = np.histogram2d(xx, yy, bins=(100, 100))
+    x_axis = xedges[:-1] + xedges[1] - xedges[0]
+    y_axis= yedges[:-1] + yedges[1] - yedges[0]
+    img = image_analysis.Image(hist.T, x_axis, y_axis, charge=w['Charge'], energy_eV=w['p'].mean()*m_e_eV, x_unit=x_unit, y_unit=y_unit, x_points=xx0, y_points=yy0)
+    img = img.cut_voids(*void_cut)
+    return img
 
