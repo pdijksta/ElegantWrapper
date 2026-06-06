@@ -49,7 +49,7 @@ def plot(sim, watchplot='long', void_cut=(2e-3, 2e-3)):
 
     if watchplot == 'long':
         xlabel = '$t$ (fs)'
-        ylabel = '$\Delta E$ (MeV)'
+        ylabel = r'$\Delta E$ (MeV)'
         xdim = 't'
         ydim = 'p'
         xfactor = 1
