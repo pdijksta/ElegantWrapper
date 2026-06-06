@@ -106,7 +106,7 @@ def w_to_img(w, void_cut=(2e-3, 2e-3), xdim='t', ydim='p', xfactor=1, yfactor=m_
     yy1 = yy0[mask]
     xx = (xx1 - xx1.mean())*xfactor
     yy = (yy1 - yy1.mean())*yfactor
-    hist, xedges, yedges = np.histogram2d(xx, yy, bins=(100, 100))
+    hist, xedges, yedges = np.histogram2d(xx, yy, bins=bins)
     x_axis = xedges[:-1] + xedges[1] - xedges[0]
     y_axis= yedges[:-1] + yedges[1] - yedges[0]
     img = image_analysis.Image(hist.T, x_axis, y_axis, charge=w['Charge'], energy_eV=w['p'].mean()*m_e_eV, x_unit=x_unit, y_unit=y_unit, x_points=xx0, y_points=yy0)
